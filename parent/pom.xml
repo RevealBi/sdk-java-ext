@@ -18,6 +18,8 @@
 	<modules>
 		<module>../reveal-ext-api</module>
 		<module>../reveal-ext-fs</module>
+		<module>../reveal-ext-rest</module>
+		<module>../reveal-ext-spring</module>
 	</modules>
 	<distributionManagement>
 		<repository>
