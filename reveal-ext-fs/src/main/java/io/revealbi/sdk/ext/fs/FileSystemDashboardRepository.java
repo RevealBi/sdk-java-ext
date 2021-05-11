@@ -75,7 +75,7 @@ public class FileSystemDashboardRepository implements IDashboardRepository {
 		items.sort(new Comparator<DashboardInfo>() {
 			@Override
 			public int compare(DashboardInfo d1, DashboardInfo d2) {
-				return d1.getId().compareToIgnoreCase(d2.getId());
+				return d1.getDisplayName().compareToIgnoreCase(d2.getDisplayName());
 			}
 		});
 		return items.toArray(new DashboardInfo[items.size()]);

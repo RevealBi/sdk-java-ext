@@ -22,6 +22,11 @@ public class DashboardInfo {
 		this.id = id;
 	}
 
+	public String getDisplayName() {
+		String title = info == null ? null : (String)info.get("Title");
+		return title == null ? id : title;
+	}
+	
 	public Map<String, Object> getInfo() {
 		return info;
 	}
