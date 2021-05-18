@@ -1,8 +1,17 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<repositories>
 		<repository>
 			<id>reveal.public</id>
 			<url>https://revealpackages.eastus.cloudapp.azure.com/repository/public</url>
+		</repository>
+		<repository>
+			<id>reveal.snapshots</id>
+			<url>https://revealpackages.eastus.cloudapp.azure.com/repository/snapshots</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
 		</repository>
 	</repositories>
 
@@ -70,6 +79,6 @@
 	</dependencies>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<reveal.sdk.version>1.0.3</reveal.sdk.version>
+		<reveal.sdk.version>1.0.4-SNAPSHOT</reveal.sdk.version>
 	</properties>
 </project>

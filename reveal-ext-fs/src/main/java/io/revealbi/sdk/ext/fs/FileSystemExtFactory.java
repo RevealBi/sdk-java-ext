@@ -23,9 +23,10 @@ public class FileSystemExtFactory {
 	 * {@link FileSystemCredentialRepository}, {@link FileSystemDashboardRepository} and {@link FileSystemDataSourcesRepository}
 	 * 
 	 * @param rootDir The parent directory to be used to store all files, write permission is required.
+	 * @param personalDashboards A boolean flag indicating if dashboards should be personal or global for all users.
 	 */
-	public static void registerAllServices(String rootDir) {
-		DashboardRepositoryFactory.setInstance(new FileSystemDashboardRepository(getDashboardsRootDir(rootDir)));
+	public static void registerAllServices(String rootDir, boolean personalDashboards) {
+		DashboardRepositoryFactory.setInstance(new FileSystemDashboardRepository(getDashboardsRootDir(rootDir), personalDashboards));
 		CredentialRepositoryFactory.setInstance(new FileSystemCredentialRepository(getCredentialsFilePath(rootDir)));
 		DataSourcesRepositoryFactory.setInstance(new FileSystemDataSourcesRepository(getDataSourcesFilePath(rootDir)));
 	}

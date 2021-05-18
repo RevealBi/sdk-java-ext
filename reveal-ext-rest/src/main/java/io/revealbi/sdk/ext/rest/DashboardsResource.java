@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -28,6 +29,7 @@ import com.infragistics.reveal.sdk.util.RVSerializationUtilities;
 
 import io.revealbi.sdk.ext.api.DashboardInfo;
 import io.revealbi.sdk.ext.api.DashboardRepositoryFactory;
+import io.revealbi.sdk.ext.api.IAuthorizationProvider;
 import io.revealbi.sdk.ext.api.IDashboardRepository;
 
 @Path("/dashboards")
@@ -39,12 +41,16 @@ public class DashboardsResource extends BaseResource {
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public DashboardInfo[] getDashboards() throws IOException {
+		checkDashboardsPermission(IAuthorizationProvider.DashboardsActionType.LIST);
+		
 		return getDashboardRepository().getUserDashboards(getUserId());
 	}
 	
 	@DELETE	
 	@Path("/{dashboardId}")
 	public void deleteDashboard(@PathParam("dashboardId") String dashboardId) throws IOException {
+		checkDashboardPermission(dashboardId, IAuthorizationProvider.DashboardActionType.DELETE);
+		
 		getDashboardRepository().deleteDashboard(getUserId(), dashboardId);
 	}
 	
@@ -52,6 +58,8 @@ public class DashboardsResource extends BaseResource {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Path("/{dashboardId}")
 	public Map<String, Object> getDashboardJson(@PathParam("dashboardId") String dashboardId) throws IOException {
+		checkDashboardPermission(dashboardId, IAuthorizationProvider.DashboardActionType.READ);
+		
 		InputStream rdashStream = getDashboardRepository().getDashboard(getUserId(), dashboardId);
 		if (rdashStream != null) {
 			RVDashboardDocument doc = RVSerializationUtilities.getDashboardDocument(rdashStream);
@@ -66,6 +74,8 @@ public class DashboardsResource extends BaseResource {
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	@Path("/export/{dashboardId}")
 	public Response getDashboard(@PathParam("dashboardId") String dashboardId) throws IOException {
+		checkDashboardPermission(dashboardId, IAuthorizationProvider.DashboardActionType.READ);
+		
 		final InputStream rdashStream = getDashboardRepository().getDashboard(getUserId(), dashboardId);
 		if (rdashStream != null) {
 			StreamingOutput output = new StreamingOutput() {				
@@ -86,13 +96,15 @@ public class DashboardsResource extends BaseResource {
 	@Consumes(MediaType.MULTIPART_FORM_DATA)
 	@Path("/upload")
 	public Response uploadDashboards(@FormDataParam("files") List<FormDataBodyPart> files) throws IOException {
+		checkDashboardsPermission(IAuthorizationProvider.DashboardsActionType.UPLOAD);
+		
 		for (FormDataBodyPart file : files) {
 			FormDataContentDisposition disposition = file.getFormDataContentDisposition();
 			String fileName = disposition.getFileName();
 			if (fileName == null || !fileName.endsWith(".rdash")) {
 				continue;
 			}
-			String dashboardId = fileName.substring(0, fileName.length() - ".rdash".length());
+			String dashboardId = UUID.randomUUID().toString();
 			try (InputStream inputStream = file.getValueAs(InputStream.class)) {
 				getDashboardRepository().saveDashboard(getUserId(), dashboardId, inputStream);
 			}

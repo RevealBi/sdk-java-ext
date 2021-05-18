@@ -27,9 +27,17 @@ import io.revealbi.sdk.ext.api.IDashboardRepository;
  */
 public class FileSystemDashboardRepository implements IDashboardRepository {
 	private String rootDir;
+	private boolean personal;
 	
-	public FileSystemDashboardRepository(String rootDir) {
+	/**
+	 * Creates a new instance of the dashboards repository using the specified root directory. If personal is set to 
+	 * true then dashboards will be stored under a separated directory for each user.
+	 * @param rootDir The root directory to used to store dashboards
+	 * @param personal If true dashboards will be personal and dashboards created by a given user will not be accessible for others. If false a single list of dashboards will be used. 
+	 */
+	public FileSystemDashboardRepository(String rootDir, boolean personal) {
 		this.rootDir = rootDir;
+		this.personal = personal;
 	}
 	
 	@Override
@@ -109,7 +117,7 @@ public class FileSystemDashboardRepository implements IDashboardRepository {
 	}
 
 	private String getDashboardPath(String userId, String dashboardId) {
-		File userDir = userId == null ? new File(rootDir) : new File(rootDir, userId);
+		File userDir = (userId == null || !personal) ? new File(rootDir) : new File(rootDir, userId);
 		if (dashboardId == null) {
 			return userDir.getAbsolutePath();
 		}
