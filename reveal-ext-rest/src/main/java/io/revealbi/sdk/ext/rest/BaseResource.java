@@ -19,14 +19,14 @@ public abstract class BaseResource {
 	protected void checkDashboardPermission(String dashboardId, IAuthorizationProvider.DashboardActionType action) {
 		boolean ok = AuthorizationProviderFactory.getInstance().hasDashboardPermission(UserIdProvider.getUserId(requestContext), dashboardId, action);
 		if (!ok) {
-			throw new WebApplicationException(Status.UNAUTHORIZED);
+			throw new WebApplicationException(Status.FORBIDDEN);
 		}
 	}
 	
 	protected void checkDashboardsPermission(IAuthorizationProvider.DashboardsActionType action) {
 		boolean ok = AuthorizationProviderFactory.getInstance().hasDashboardsPermission(UserIdProvider.getUserId(requestContext), action);
 		if (!ok) {
-			throw new WebApplicationException(Status.UNAUTHORIZED);
+			throw new WebApplicationException(Status.FORBIDDEN);
 		}
 	}
 }
