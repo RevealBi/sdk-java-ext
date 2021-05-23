@@ -89,6 +89,15 @@ public class FileSystemDashboardRepository implements IDashboardRepository {
 		return items.toArray(new DashboardInfo[items.size()]);
 	}
 	
+	public DashboardInfo getDashboardInfo(String userId, String dashboardId) {
+		String path = getDashboardPath(userId, dashboardId);
+		File f = new File(path);
+		if (!f.exists() || !f.canRead()) {
+			return null;
+		}
+		return new DashboardInfo(getDashboardName(f.getName()), getDashboardSummary(f));
+	}
+	
 	@Override
 	public void deleteDashboard(String userId, String dashboardId) throws IOException {
 		String path = getDashboardPath(userId, dashboardId);
