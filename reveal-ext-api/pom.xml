@@ -17,5 +17,10 @@
 			<artifactId>reveal-sdk-api</artifactId>
 			<version>${reveal.sdk.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>com.infragistics.reveal.sdk</groupId>
+			<artifactId>reveal-sdk</artifactId>
+			<version>${reveal.sdk.version}</version>
+		</dependency>
 	</dependencies>
 </project>

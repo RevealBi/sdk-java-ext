@@ -16,6 +16,7 @@ import com.infragistics.reveal.sdk.util.RVSerializationUtilities;
 
 import io.revealbi.sdk.ext.api.DashboardInfo;
 import io.revealbi.sdk.ext.api.IDashboardRepository;
+import io.revealbi.sdk.ext.base.BaseDashboardRepository;
 
 /**
  * Dashboards repository implementation that loads and saves dashboards as ".rdash" files in the file system.
@@ -25,7 +26,7 @@ import io.revealbi.sdk.ext.api.IDashboardRepository;
  * For the dashboard file, the dashboard id is used as the name of the file (with extension .rdash), which means
  * that dashboard ids are also assumed to be valid names for files in the file system.
  */
-public class FileSystemDashboardRepository implements IDashboardRepository {
+public class FileSystemDashboardRepository extends BaseDashboardRepository {
 	private String rootDir;
 	private boolean personal;
 	
@@ -66,36 +67,8 @@ public class FileSystemDashboardRepository implements IDashboardRepository {
 		}
 	}
 	
-	@Override
-	public DashboardInfo[] getUserDashboards(String userId) throws IOException {
-		String path = getDashboardPath(userId, null);
-		File userDir = new File(path);
-		if (!userDir.exists() || !userDir.isDirectory()) {
-			return new DashboardInfo[0];
-		}
-		List<DashboardInfo> items = new ArrayList<DashboardInfo>();
-		for (File f : userDir.listFiles()) {
-			if (f.isDirectory() || !f.canRead() || !f.getName().endsWith(".rdash")) {
-				continue;
-			}
-			items.add(new DashboardInfo(getDashboardName(f.getName()), getDashboardSummary(f)));
-		}
-		items.sort(new Comparator<DashboardInfo>() {
-			@Override
-			public int compare(DashboardInfo d1, DashboardInfo d2) {
-				return d1.getDisplayName().compareToIgnoreCase(d2.getDisplayName());
-			}
-		});
-		return items.toArray(new DashboardInfo[items.size()]);
-	}
-	
-	public DashboardInfo getDashboardInfo(String userId, String dashboardId) {
-		String path = getDashboardPath(userId, dashboardId);
-		File f = new File(path);
-		if (!f.exists() || !f.canRead()) {
-			return null;
-		}
-		return new DashboardInfo(getDashboardName(f.getName()), getDashboardSummary(f));
+	public DashboardInfo getDashboardInfo(String userId, String dashboardId) throws IOException {
+		return super.getDashboardInfo(userId, dashboardId);
 	}
 	
 	@Override
@@ -107,29 +80,35 @@ public class FileSystemDashboardRepository implements IDashboardRepository {
 		}
 	}
 	
-	private static Map<String, Object> getDashboardSummary(File f) {
-		try (FileInputStream in = new FileInputStream(f)) {
-			RVDashboardSummary summary = RVSerializationUtilities.getDashboardSummary(in);
-			return summary.toJson();				
-		} catch (IOException e) {
-			System.out.println("Failed to read thumbnail info: ");
-			e.printStackTrace();
-			return null;
-		}
-	}
-	
-	private static String getDashboardName(String fileName) {
-		if (fileName.endsWith(".rdash")) {
-			return fileName.substring(0, fileName.length() - ".rdash".length());
-		}
-		return fileName;
-	}
-
 	private String getDashboardPath(String userId, String dashboardId) {
 		File userDir = (userId == null || !personal) ? new File(rootDir) : new File(rootDir, userId);
 		if (dashboardId == null) {
 			return userDir.getAbsolutePath();
 		}
 		return new File(userDir, dashboardId + ".rdash").getAbsolutePath();
+	}
+
+	@Override
+	protected String[] getUserDashboardIds(String userId) throws IOException {
+		String path = getDashboardPath(userId, null);
+		File userDir = new File(path);
+		if (!userDir.exists() || !userDir.isDirectory()) {
+			return null;
+		}
+		List<String> ids = new ArrayList<String>();
+		for (File f : userDir.listFiles()) {
+			if (f.isDirectory() || !f.canRead() || !f.getName().endsWith(".rdash")) {
+				continue;
+			}
+			ids.add(getDashboardId(f.getName()));
+		}
+		return ids.toArray(new String[ids.size()]);
+	}
+	
+	private static String getDashboardId(String fileName) {
+		if (fileName.endsWith(".rdash")) {
+			return fileName.substring(0, fileName.length() - ".rdash".length());
+		}
+		return fileName;
 	}
 }
