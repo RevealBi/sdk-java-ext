@@ -1,0 +1,26 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>io.revealbi.sdk.ext</groupId>
+		<version>1.0.0-SNAPSHOT</version>
+		<artifactId>reveal-ext-parent</artifactId>
+		<relativePath>../parent/pom.xml</relativePath>
+	</parent>
+	<artifactId>reveal-ext-api</artifactId>
+	<build>
+		<plugins>
+		</plugins>
+	</build>
+	<dependencies>
+		<dependency>
+			<groupId>com.infragistics.reveal.sdk</groupId>
+			<artifactId>reveal-sdk-api</artifactId>
+			<version>${reveal.sdk.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.infragistics.reveal.sdk</groupId>
+			<artifactId>reveal-sdk</artifactId>
+			<version>${reveal.sdk.version}</version>
+		</dependency>
+	</dependencies>
+</project>

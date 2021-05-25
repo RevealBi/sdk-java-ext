@@ -1,0 +1,36 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>io.revealbi.sdk.ext</groupId>
+		<version>1.0.0-SNAPSHOT</version>
+		<artifactId>reveal-ext-parent</artifactId>
+		<relativePath>../parent/pom.xml</relativePath>
+	</parent>
+	<artifactId>reveal-ext-rest</artifactId>
+	<dependencies>
+		<dependency>
+			<groupId>io.revealbi.sdk.ext</groupId>
+			<artifactId>reveal-ext-api</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.infragistics.reveal.sdk</groupId>
+			<artifactId>reveal-sdk</artifactId>
+			<version>${reveal.sdk.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>jakarta.ws.rs</groupId>
+			<artifactId>jakarta.ws.rs-api</artifactId>
+			<version>2.1.6</version>
+			<scope>provided</scope>
+		</dependency>
+		<!-- even when this comes from Jersey it's supposed to work with any JAX-RS provider -->
+		<dependency>
+			<groupId>org.glassfish.jersey.media</groupId>
+			<artifactId>jersey-media-multipart</artifactId>
+			<version>2.32</version>
+		</dependency>
+	</dependencies>
+</project>
