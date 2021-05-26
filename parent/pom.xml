@@ -79,6 +79,6 @@
 	</dependencies>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<reveal.sdk.version>1.0.4-SNAPSHOT</reveal.sdk.version>
+		<reveal.sdk.version>1.0.4</reveal.sdk.version>
 	</properties>
 </project>
