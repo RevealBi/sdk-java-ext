@@ -1,6 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<repositories>
 		<repository>
 			<id>reveal.public</id>
@@ -18,7 +16,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.revealbi.sdk.ext</groupId>
 	<artifactId>reveal-ext-parent</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<scm>
 		<developerConnection>scm:git:https://github.com/RevealBi/sdk-java-ext.git</developerConnection>
@@ -79,6 +77,6 @@
 	</dependencies>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<reveal.sdk.version>1.0.4-SNAPSHOT</reveal.sdk.version>
+		<reveal.sdk.version>1.0.4</reveal.sdk.version>
 	</properties>
 </project>
