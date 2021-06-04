@@ -8,7 +8,7 @@ import io.revealbi.sdk.ext.api.oauth.IOAuthManager;
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderSettings;
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderType;
 
-public class BaseOAuthManager implements IOAuthManager {
+public abstract class BaseOAuthManager implements IOAuthManager {
 	private Map<OAuthProviderType, OAuthProviderSettings> map = Collections.synchronizedMap(new HashMap<OAuthProviderType, OAuthProviderSettings>());
 	
 	@Override

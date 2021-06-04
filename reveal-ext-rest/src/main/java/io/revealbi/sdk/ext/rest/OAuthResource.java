@@ -27,6 +27,7 @@ import io.revealbi.sdk.ext.api.oauth.IOAuthManager;
 import io.revealbi.sdk.ext.api.oauth.OAuthManagerFactory;
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderSettings;
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderType;
+import io.revealbi.sdk.ext.api.oauth.OAuthToken;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -44,13 +45,16 @@ public class OAuthResource extends BaseResource {
 	
 	@Path("/{providerType}/auth/{dataSourceId}")
 	@GET
-	public Response doAuth(@PathParam("providerType") OAuthProviderType providerType, @PathParam("dataSourceId") String dataSourceId) throws URISyntaxException {
+	public Response doAuth(@PathParam("providerType") OAuthProviderType providerType, @PathParam("dataSourceId") String dataSourceId, @QueryParam("finalUrl") String finalUrl) throws URISyntaxException {
 		OAuthProviderSettings settings = providerType == null ? null : getOAuthManager().getProviderSettings(providerType);
 		if (settings == null || settings.getAuthEndpoint() == null) {
 			return Response.status(Status.NOT_FOUND).build();
 		}
 		Map<String, String> state = getAuthState();
 		state.put("dataSourceId", dataSourceId);
+		if (finalUrl != null) {
+			state.put("finalUrl", finalUrl);
+		}
 		return Response.temporaryRedirect(getAuthURI(settings, state)).build();
 	}
 	
@@ -64,16 +68,33 @@ public class OAuthResource extends BaseResource {
 		Map<String, String> state = decodeState(stateStr);
 		String dataSourceId = state.get("dataSourceId");
 		if (dataSourceId == null) {
-			//TODO: show an error			
+			return createErrorResponse("Invalid redirect, no data source id received");			
 		} else if (!isValidUserState(state)) {
-			//TODO: show an error
+			return createErrorResponse("Invalid redirect, state validation failed");			
 		} else {
-			return completeAuthentication(settings, dataSourceId, code);
+			String finalUrl = state.get("finalUrl");
+			return completeAuthentication(settings, dataSourceId, code, finalUrl);
 		}
-		return Response.ok().build();
+	}
+
+	@Path("/authenticated")
+	@GET
+	public Response doAuthenticated() throws IOException {
+		StringBuilder builder = new StringBuilder();
+		builder.append("<html><body>");
+		builder.append("You can close this window");
+		builder.append("</body></html>");
+		
+		return Response.ok(builder.toString(), MediaType.TEXT_HTML_TYPE).build();
+	}
+
+	protected Response createErrorResponse(String msg) {
+		OAuthTokenResponse r = new OAuthTokenResponse();
+		r.setError(msg);
+		return Response.ok(r).build();
 	}
 	
-	protected Response completeAuthentication(OAuthProviderSettings settings, String dataSourceId, String code) throws IOException {
+	protected Response completeAuthentication(OAuthProviderSettings settings, String dataSourceId, String code, String finalUrl) throws IOException {
 		OkHttpClient client = new OkHttpClient.Builder().build();
 		Request request = new Request.Builder().
 				url(settings.getTokenEndpoint()).
@@ -83,8 +104,26 @@ public class OAuthResource extends BaseResource {
 		okhttp3.Response response = client.newCall(request).execute();
 		String str = new String(response.body().bytes(), "UTF-8");
 		Jsonb json = JsonbBuilder.create();
-		OAuthTokenResponse oAuthResponse = json.fromJson(str, OAuthTokenResponse.class);		
-		return Response.ok(json.toJson(oAuthResponse)).build();
+		OAuthTokenResponse oAuthResponse = json.fromJson(str, OAuthTokenResponse.class);	
+		if (oAuthResponse.getError() != null) {
+			return Response.ok(json.toJson(oAuthResponse)).build();
+		} else {
+			OAuthToken token = createOAuthToken(oAuthResponse, settings.getRedirectUri());
+			OAuthManagerFactory.getInstance().saveToken(getUserId(), dataSourceId, settings.getProviderType(), token);
+			return Response.temporaryRedirect(getAuthenticationSuccessUri(settings.getRedirectUri(), finalUrl)).build();
+		}
+	}
+	
+	protected URI getAuthenticationSuccessUri(String redirectUri, String finalUrl) {
+		try {
+			if (finalUrl != null) {
+				return new URI(finalUrl);
+			} else {
+				return new URI(redirectUri.replaceFirst("/callback", "/authenticated"));
+			}
+		} catch (URISyntaxException exc) {
+			throw new RuntimeException(exc);
+		}
 	}
 		
 	protected Map<String, String> getAuthState() {
@@ -218,6 +257,16 @@ public class OAuthResource extends BaseResource {
 			state.put(pair[0], pair[1]);
 		}
 		return state;
+	}
+	
+	private static OAuthToken createOAuthToken(OAuthTokenResponse response, String redirectUri) {
+		String accessToken = response.getAccessToken();
+		String refreshToken = response.getRefreshToken();
+		long expiration = System.currentTimeMillis() + (response.getExpiresIn() - 1) * 60000;
+		String idToken = response.getIdToken();
+		String scope = response.getScope();
+		
+		return new OAuthToken(accessToken, refreshToken, expiration, idToken, redirectUri, scope);
 	}
 	
 	public static class OAuthTokenResponse {
