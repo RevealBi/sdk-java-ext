@@ -5,7 +5,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HashMap;
@@ -13,7 +12,6 @@ import java.util.Map;
 
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
-import javax.json.bind.annotation.JsonbProperty;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -28,9 +26,8 @@ import io.revealbi.sdk.ext.api.oauth.OAuthManagerFactory;
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderSettings;
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderType;
 import io.revealbi.sdk.ext.api.oauth.OAuthToken;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
+import io.revealbi.sdk.ext.oauth.OAuthClient;
+import io.revealbi.sdk.ext.oauth.OAuthTokenResponse;
 
 @Path("/oauth")
 public class OAuthResource extends BaseResource {	
@@ -95,20 +92,13 @@ public class OAuthResource extends BaseResource {
 	}
 	
 	protected Response completeAuthentication(OAuthProviderSettings settings, String dataSourceId, String code, String finalUrl) throws IOException {
-		OkHttpClient client = new OkHttpClient.Builder().build();
-		Request request = new Request.Builder().
-				url(settings.getTokenEndpoint()).
-				post(RequestBody.create(okhttp3.MediaType.parse(MediaType.APPLICATION_FORM_URLENCODED), getTokenBody(settings, code))).
-				build();
-		
-		okhttp3.Response response = client.newCall(request).execute();
-		String str = new String(response.body().bytes(), "UTF-8");
-		Jsonb json = JsonbBuilder.create();
-		OAuthTokenResponse oAuthResponse = json.fromJson(str, OAuthTokenResponse.class);	
-		if (oAuthResponse.getError() != null) {
-			return Response.ok(json.toJson(oAuthResponse)).build();
+		OAuthClient client = new OAuthClient();
+		OAuthTokenResponse response = client.completeAuthentication(settings, code);
+		if (response.getError() != null) {
+			Jsonb json = JsonbBuilder.create();
+			return Response.ok(json.toJson(response)).build();
 		} else {
-			OAuthToken token = createOAuthToken(oAuthResponse, settings.getRedirectUri());
+			OAuthToken token = createOAuthToken(response, settings.getRedirectUri());
 			OAuthManagerFactory.getInstance().saveToken(getUserId(), dataSourceId, settings.getProviderType(), token);
 			return Response.temporaryRedirect(getAuthenticationSuccessUri(settings.getRedirectUri(), finalUrl)).build();
 		}
@@ -200,29 +190,6 @@ public class OAuthResource extends BaseResource {
 		return URI.create(builder.toString());
 	}
 	
-	private static String getTokenBody(OAuthProviderSettings settings, String code) {
-		StringBuilder builder = new StringBuilder();
-		builder.append("grant_type=authorization_code");
-		
-		String clientId = settings.getClientId();
-		String clientSecret = settings.getClientSecret();
-		String redirectUri = settings.getRedirectUri();
-		
-		if (code != null) {
-			builder.append("&code=").append(code);
-		}
-		if (clientId != null) {
-			builder.append("&client_id=").append(clientId);
-		}
-		if (clientSecret != null) {
-			builder.append("&client_secret=").append(clientSecret);
-		}
-		if (redirectUri != null) {
-			builder.append("&redirect_uri=").append(urlEncode(redirectUri));
-		}
-		return builder.toString();
-	}
-	
 	private static String encodeState(Map<String, String> state) {
 		StringBuilder stateBuilder = new StringBuilder();
 		for (String key : state.keySet()) {
@@ -231,16 +198,8 @@ public class OAuthResource extends BaseResource {
 			}
 			stateBuilder.append(key).append("=").append(state.get(key));
 		}
-		return urlEncode(stateBuilder.toString());
-	}
-	
-	private static String urlEncode(String s) {
-		try {
-			return URLEncoder.encode(s, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-	}
+		return OAuthClient.urlEncode(stateBuilder.toString());
+	}	
 	
 	private static Map<String, String> decodeState(String stateStr) {
 		try {
@@ -262,98 +221,11 @@ public class OAuthResource extends BaseResource {
 	private static OAuthToken createOAuthToken(OAuthTokenResponse response, String redirectUri) {
 		String accessToken = response.getAccessToken();
 		String refreshToken = response.getRefreshToken();
-		long expiration = System.currentTimeMillis() + (response.getExpiresIn() - 1) * 60000;
+		long expiration = OAuthClient.getExpirationTimeForToken(response.getExpiresIn());
 		String idToken = response.getIdToken();
 		String scope = response.getScope();
 		
 		return new OAuthToken(accessToken, refreshToken, expiration, idToken, redirectUri, scope);
-	}
-	
-	public static class OAuthTokenResponse {
-		private String accessToken;
-		private Integer expiresIn;
-		private String refreshToken;
-		private String scope;
-		private String tokenType;
-		private String idToken;
-		private String error;
-		private String errorDescription;
-
-		@JsonbProperty("access_token")
-		public String getAccessToken() {
-			return accessToken;
-		}
-		
-		@JsonbProperty("access_token")
-		public void setAccessToken(String accessToken) {
-			this.accessToken = accessToken;
-		}
-
-		@JsonbProperty("expires_in")
-		public Integer getExpiresIn() {
-			return expiresIn;
-		}
-		
-		@JsonbProperty("expires_in")
-		public void setExpiresIn(Integer expiresIn) {
-			this.expiresIn = expiresIn;
-		}
-
-		@JsonbProperty("refresh_token")
-		public String getRefreshToken() {
-			return refreshToken;
-		}
-				
-		@JsonbProperty("refresh_token")
-		public void setRefreshToken(String refreshToken) {
-			this.refreshToken = refreshToken;
-		}
-
-		public String getScope() {
-			return scope;
-		}
-		
-		public void setScope(String scope) {
-			this.scope = scope;
-		}
-		
-		@JsonbProperty("token_type")
-		public String getTokenType() {
-			return tokenType;
-		}
-		
-		@JsonbProperty("token_type")
-		public void setTokenType(String tokenType) {
-			this.tokenType = tokenType;
-		}
-
-		@JsonbProperty("id_token")
-		public String getIdToken() {
-			return idToken;
-		}
-		
-		@JsonbProperty("id_token")
-		public void setIdToken(String idToken) {
-			this.idToken = idToken;
-		}
-
-		public String getError() {
-			return error;
-		}
-
-		public void setError(String error) {
-			this.error = error;
-		}
-
-		@JsonbProperty("error_description")
-		public String getErrorDescription() {
-			return errorDescription;
-		}
-
-		@JsonbProperty("error_description")
-		public void setErrorDescription(String errorDescription) {
-			this.errorDescription = errorDescription;
-		}		
 	}
 }
 

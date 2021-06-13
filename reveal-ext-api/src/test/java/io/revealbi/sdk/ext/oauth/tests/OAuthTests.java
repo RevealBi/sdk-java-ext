@@ -1,4 +1,4 @@
-package io.revealbi.sdk.ext.rest.tests;
+package io.revealbi.sdk.ext.oauth.tests;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -9,7 +9,7 @@ import javax.json.bind.JsonbBuilder;
 
 import org.junit.Test;
 
-import io.revealbi.sdk.ext.rest.OAuthResource.OAuthTokenResponse;
+import io.revealbi.sdk.ext.oauth.OAuthTokenResponse;
 
 public class OAuthTests {
 

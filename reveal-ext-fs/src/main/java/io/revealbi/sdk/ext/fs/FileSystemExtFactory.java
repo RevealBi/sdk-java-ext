@@ -5,6 +5,7 @@ import java.io.File;
 import io.revealbi.sdk.ext.api.CredentialRepositoryFactory;
 import io.revealbi.sdk.ext.api.DashboardRepositoryFactory;
 import io.revealbi.sdk.ext.api.DataSourcesRepositoryFactory;
+import io.revealbi.sdk.ext.api.oauth.OAuthTokenRepositoryFactory;
 
 /**
  * Helper class to be used when you want to use all services from File System.
@@ -29,6 +30,7 @@ public class FileSystemExtFactory {
 		DashboardRepositoryFactory.setInstance(new FileSystemDashboardRepository(getDashboardsRootDir(rootDir), personalDashboards));
 		CredentialRepositoryFactory.setInstance(new FileSystemCredentialRepository(getCredentialsFilePath(rootDir)));
 		DataSourcesRepositoryFactory.setInstance(new FileSystemDataSourcesRepository(getDataSourcesFilePath(rootDir)));
+		OAuthTokenRepositoryFactory.setInstance(new FileSystemOAuthTokenRepository(getOAuthTokensFilePath(rootDir)));
 	}
 	private static String getDashboardsRootDir(String rootDir) {
 		return new File(rootDir, "dashboards").getAbsolutePath();
@@ -40,4 +42,9 @@ public class FileSystemExtFactory {
 	private static String getDataSourcesFilePath(String rootDir) {
 		return new File(rootDir, "datasources.json").getAbsolutePath();
 	}
+	
+	private static String getOAuthTokensFilePath(String rootDir) {
+		return new File(rootDir, "tokens.json").getAbsolutePath();
+	}
+
 }
