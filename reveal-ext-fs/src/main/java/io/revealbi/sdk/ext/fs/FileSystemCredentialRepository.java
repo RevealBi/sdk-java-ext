@@ -20,13 +20,9 @@ import javax.json.bind.annotation.JsonbTransient;
 import com.infragistics.reveal.sdk.api.IRVDataSourceCredential;
 import com.infragistics.reveal.sdk.api.RVUsernamePasswordDataSourceCredential;
 import com.infragistics.reveal.sdk.api.model.RVDashboardDataSource;
-import com.infragistics.reveal.sdk.api.model.RVGoogleAnalyticsDataSource;
 import com.infragistics.reveal.sdk.util.RVModelUtilities;
 
-import io.revealbi.sdk.ext.api.ICredentialRepository;
-import io.revealbi.sdk.ext.api.oauth.IOAuthManager;
-import io.revealbi.sdk.ext.api.oauth.OAuthManagerFactory;
-import io.revealbi.sdk.ext.api.oauth.OAuthProviderType;
+import io.revealbi.sdk.ext.base.BaseCredentialRepository;
 
 /**
  * Credentials repository implementation that loads credentials from a JSON document.
@@ -49,7 +45,7 @@ import io.revealbi.sdk.ext.api.oauth.OAuthProviderType;
  * 
  * Changes to the file are detected and automatically loaded, no need to restart the server if the file was modified.
  */
-public class FileSystemCredentialRepository implements ICredentialRepository {
+public class FileSystemCredentialRepository extends BaseCredentialRepository {
 	private static Logger log = Logger.getLogger(FileSystemCredentialRepository.class.getName());
 	
 	private String filePath;
@@ -61,13 +57,7 @@ public class FileSystemCredentialRepository implements ICredentialRepository {
 	}
 	
 	@Override
-	public IRVDataSourceCredential resolveCredentials(String userId, RVDashboardDataSource ds) {
-		if (ds instanceof RVGoogleAnalyticsDataSource) {
-			IOAuthManager oauth = OAuthManagerFactory.getInstance();
-			if (oauth != null) {
-				return oauth.resolveCredentials(userId, ds.getId(), OAuthProviderType.GOOGLE_ANALYTICS);
-			}
-		}
+	protected IRVDataSourceCredential resolveRegularCredentials(String userId, RVDashboardDataSource ds) {		
 		IRVDataSourceCredential result = getDataSourceCredential(RVModelUtilities.getUniqueIdentifier(ds));
 		if (result == null) {
 			result = getDataSourceCredential(ds.getId());
@@ -224,7 +214,7 @@ public class FileSystemCredentialRepository implements ICredentialRepository {
 			return null;
 		}
 	}
-
+	
 	public static class CredentialsConfig {
 		public Credentials[] credentials;
 		
