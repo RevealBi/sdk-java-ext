@@ -51,7 +51,7 @@ public class OAuthManagerFactory {
 					log.info("No OAuth providers specified in OAuth configuration file");
 				} else {
 					for (String provider : providers.keySet()) {
-						OAuthProviderType providerType = OAuthProviderType.valueOf(provider);
+						OAuthProviderType providerType = getOAuthProviderType(provider);
 						if (providerType == null) {
 							log.warning("Ignoring OAuth configuration for " + provider + ". Invalid provider name");
 							continue;
@@ -71,6 +71,13 @@ public class OAuthManagerFactory {
 		}
 	}
 	
+	private static OAuthProviderType getOAuthProviderType(String str) {
+		try {
+			 return OAuthProviderType.valueOf(str);
+		} catch (IllegalArgumentException exc) {
+			return null;
+		}
+	}
 	
 	public static class OAuthProvidersConfig {
 		public Map<String, OAuthProviderConfig> providers;
