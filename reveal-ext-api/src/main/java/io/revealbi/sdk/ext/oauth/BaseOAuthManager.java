@@ -40,14 +40,30 @@ public class BaseOAuthManager implements IOAuthManager {
 		}
 	}
 	
-	protected OAuthToken getToken(String userId, String dataSourceId, OAuthProviderType provider) throws IOException {
-		return OAuthTokenRepositoryFactory.getInstance().getToken(userId, dataSourceId, provider);
+	@Override
+	public Map<String, Object> getUserInfo(String userId, OAuthProviderType provider, String tokenId) throws IOException {
+		OAuthToken token = OAuthTokenRepositoryFactory.getInstance().getToken(userId, tokenId, provider);
+		return token == null ? null : token.getUserInfo();
+	}
+	
+	protected OAuthToken getDataSourceToken(String userId, String dataSourceId, OAuthProviderType provider) throws IOException {		
+		return OAuthTokenRepositoryFactory.getInstance().getDataSourceToken(userId, dataSourceId, provider);
 	}
 	
 	@Override
-	public void saveToken(String userId, String dataSourceId, OAuthProviderType provider, OAuthToken token) throws IOException {
-		OAuthTokenRepositoryFactory.getInstance().saveToken(userId, dataSourceId, provider, token);
+	public void saveToken(String userId, OAuthProviderType provider, OAuthToken token) throws IOException {
+		OAuthTokenRepositoryFactory.getInstance().saveToken(userId, provider, token);
 	}	
+	
+	@Override
+	public void deleteToken(String userId, String tokenId, OAuthProviderType provider) throws IOException {
+		OAuthTokenRepositoryFactory.getInstance().deleteToken(userId, tokenId, provider);
+	}
+	
+	@Override
+	public void setDataSourceToken(String userId, String dataSourceId, String tokenId, OAuthProviderType provider) throws IOException {
+		OAuthTokenRepositoryFactory.getInstance().setDataSourceToken(userId, dataSourceId, tokenId, provider);
+	}
 	
 	public void registerProviderSettings(OAuthProviderSettings settings) {
 		map.put(settings.getProviderType(), settings);
@@ -89,6 +105,7 @@ public class BaseOAuthManager implements IOAuthManager {
 	 * Refreshes the token, must save the token and update refresh and access tokens in the token parameter.
 	 * @param userId Id of the user this token is associated with.
 	 * @param dataSourceId Id of the data source linked to the token.
+	 * @param tokenId Id of the token to be refreshed.
 	 * @param provider The OAuth provider this token belongs to.
 	 * @param token The token to refresh.
 	 * @throws IOException If an I/O error occurs refreshing the token 
@@ -99,7 +116,7 @@ public class BaseOAuthManager implements IOAuthManager {
 		if (settings == null) {
 			return;
 		}
-		OAuthClient client = new OAuthClient();
+		OAuthClient client = OAuthClientFactory.getClient(provider);
 		OAuthTokenResponse response = client.refreshToken(settings, token.getRefreshToken());
 		if (response.getError() != null) {
 			log.severe("Failed to refresh token: " + response.getError());
@@ -117,7 +134,7 @@ public class BaseOAuthManager implements IOAuthManager {
 			return;
 		}
 		token.refreshed(newAccessToken, OAuthClient.getExpirationTimeForToken(expiresIn));
-		saveToken(userId, dataSourceId, provider, token);
+		saveToken(userId, provider, token);
 		log.info("RefreshToken completed for " + getCacheKey(userId, dataSourceId, provider));
 
 	}
@@ -127,7 +144,7 @@ public class BaseOAuthManager implements IOAuthManager {
 		TokenLock lock = getLockObject(cacheKey);
 		try {
 			synchronized (lock) {
-				OAuthToken token = getToken(userId, dataSourceId, provider);
+				OAuthToken token = getDataSourceToken(userId, dataSourceId, provider);
 				if (token == null) {
 					return null;
 				}

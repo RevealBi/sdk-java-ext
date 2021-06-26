@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 import com.infragistics.controls.IOUtils;
 
@@ -22,6 +23,8 @@ import io.revealbi.sdk.ext.base.BaseDashboardRepository;
  * that dashboard ids are also assumed to be valid names for files in the file system.
  */
 public class FileSystemDashboardRepository extends BaseDashboardRepository {
+	private static Logger log = Logger.getLogger(FileSystemDashboardRepository.class.getSimpleName());
+	
 	private String rootDir;
 	private boolean personal;
 	
@@ -98,6 +101,46 @@ public class FileSystemDashboardRepository extends BaseDashboardRepository {
 			ids.add(getDashboardId(f.getName()));
 		}
 		return ids.toArray(new String[ids.size()]);
+	}
+	
+	public void installSampleDashboards(String userId, Class<?> clazz, String[] resources) {
+		String userPath = getDashboardPath(userId, null);
+		File userDir = new File(userPath);
+		if (userDir.exists()) {
+			log.fine("Skipping installation of sample dashboards, folder already exists");
+			return;
+		}
+		boolean ok = userDir.mkdirs();
+		if (!ok) {
+			log.warning("Failed to create directory " + userPath);
+			return;
+		}
+		for (String resource : resources) {
+			InputStream in = clazz.getResourceAsStream(resource);
+			if (in == null) {
+				log.warning("Resource " + resource + " for sample dashboard not found, skipping.");
+				continue;
+			}
+			try {
+				String dashboardName = getDashboardNameFromResource(resource); 
+				saveDashboard(userId, dashboardName, in);
+				log.info("Installed sample dashboard: " + dashboardName + " for " + (userId == null ? "all users" : "user " + userId));
+				in.close();
+			} catch (IOException exc) {
+				log.warning("Failed to save sample dashboard at " + resource + ": " + exc);
+			}
+		}
+	}
+	
+	private static String getDashboardNameFromResource(String resource) {
+		File f = new File(resource);
+		String name = f.getName();
+		int lastDot = name.lastIndexOf('.');
+		if (lastDot > 0) {
+			return name.substring(0, lastDot);
+		} else {
+			return name;
+		}
 	}
 	
 	private static String getDashboardId(String fileName) {

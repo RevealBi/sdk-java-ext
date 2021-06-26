@@ -8,11 +8,13 @@ import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
 
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderSettings;
+import io.revealbi.sdk.ext.api.oauth.OAuthToken;
+import io.revealbi.sdk.ext.api.oauth.OAuthUserInfo;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 
-public class OAuthClient {
+public abstract class OAuthClient {
 	public OAuthTokenResponse completeAuthentication(OAuthProviderSettings settings, String code) throws IOException {
 		String body = getTokenBody(settings, code);
 		return performTokenAction(settings, body);
@@ -22,6 +24,10 @@ public class OAuthClient {
 		String body = getRefreshTokenBody(settings, refreshToken);
 		return performTokenAction(settings, body);
 	}
+	
+	public abstract String getTokenIdentifier(OAuthToken token);
+	
+	public abstract OAuthUserInfo getUserInfo(OAuthToken token) throws IOException;
 	
 	private OAuthTokenResponse performTokenAction(OAuthProviderSettings settings, String requestBody) throws UnsupportedEncodingException, IOException {
 		OkHttpClient client = new OkHttpClient.Builder().build();

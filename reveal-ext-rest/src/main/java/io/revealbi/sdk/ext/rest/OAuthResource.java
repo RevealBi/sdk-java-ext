@@ -12,7 +12,9 @@ import java.util.Map;
 
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
@@ -21,12 +23,15 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import io.revealbi.sdk.ext.api.DataSourcesRepositoryFactory;
 import io.revealbi.sdk.ext.api.oauth.IOAuthManager;
 import io.revealbi.sdk.ext.api.oauth.OAuthManagerFactory;
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderSettings;
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderType;
 import io.revealbi.sdk.ext.api.oauth.OAuthToken;
+import io.revealbi.sdk.ext.api.oauth.OAuthUserInfo;
 import io.revealbi.sdk.ext.oauth.OAuthClient;
+import io.revealbi.sdk.ext.oauth.OAuthClientFactory;
 import io.revealbi.sdk.ext.oauth.OAuthTokenResponse;
 
 @Path("/oauth")
@@ -43,12 +48,17 @@ public class OAuthResource extends BaseResource {
 	@Path("/{providerType}/auth/{dataSourceId}")
 	@GET
 	public Response doAuth(@PathParam("providerType") OAuthProviderType providerType, @PathParam("dataSourceId") String dataSourceId, @QueryParam("finalUrl") String finalUrl) throws URISyntaxException {
+		if (dataSourceId != null && dataSourceId.equals("_new")) {
+			dataSourceId = null;
+		}
 		OAuthProviderSettings settings = providerType == null ? null : getOAuthManager().getProviderSettings(providerType);
 		if (settings == null || settings.getAuthEndpoint() == null) {
 			return Response.status(Status.NOT_FOUND).build();
 		}
 		Map<String, String> state = getAuthState();
-		state.put("dataSourceId", dataSourceId);
+		if (dataSourceId != null) {
+			state.put("dataSourceId", dataSourceId);
+		}
 		if (finalUrl != null) {
 			state.put("finalUrl", finalUrl);
 		}
@@ -64,9 +74,7 @@ public class OAuthResource extends BaseResource {
 		}		
 		Map<String, String> state = decodeState(stateStr);
 		String dataSourceId = state.get("dataSourceId");
-		if (dataSourceId == null) {
-			return createErrorResponse("Invalid redirect, no data source id received");			
-		} else if (!isValidUserState(state)) {
+		if (!isValidUserState(state)) {
 			return createErrorResponse("Invalid redirect, state validation failed");			
 		} else {
 			String finalUrl = state.get("finalUrl");
@@ -74,15 +82,34 @@ public class OAuthResource extends BaseResource {
 		}
 	}
 
-	@Path("/authenticated")
+	@Path("/authenticated/{tokenId}")
 	@GET
-	public Response doAuthenticated() throws IOException {
+	public Response doAuthenticated(@PathParam("tokenId") String tokenId) throws IOException {
 		StringBuilder builder = new StringBuilder();
 		builder.append("<html><body>");
 		builder.append("You can close this window");
 		builder.append("</body></html>");
 		
 		return Response.ok(builder.toString(), MediaType.TEXT_HTML_TYPE).build();
+	}
+	
+	@Path("/{providerType}/{tokenId}")
+	@GET
+	public Response getUserInfo(@PathParam("providerType") OAuthProviderType providerType, @PathParam("tokenId") String tokenId) throws IOException {
+		Map<String, Object> userInfo = getOAuthManager().getUserInfo(getUserId(), providerType, tokenId);
+		if (userInfo == null) {
+			return Response.status(Status.NOT_FOUND).build();
+		}
+		return Response.ok(userInfo).build();
+	}
+	
+	@Path("/{providerType}/{tokenId}/{dataSourceId}")
+	@PUT
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Response saveDataSource(@PathParam("providerType") OAuthProviderType providerType, @PathParam("tokenId") String tokenId, @PathParam("dataSourceId") String dataSourceId, Map<String, Object> dataSource) throws IOException {
+		DataSourcesRepositoryFactory.getInstance().saveDataSource(getUserId(), dataSourceId, dataSource);
+		getOAuthManager().setDataSourceToken(getUserId(), dataSourceId, tokenId, providerType);
+		return Response.ok().build();
 	}
 
 	protected Response createErrorResponse(String msg) {
@@ -91,26 +118,42 @@ public class OAuthResource extends BaseResource {
 		return Response.ok(r).build();
 	}
 	
+	protected OAuthClient getOAuthClient(OAuthProviderType provider) {
+		return OAuthClientFactory.getClient(provider);
+	}
+	
 	protected Response completeAuthentication(OAuthProviderSettings settings, String dataSourceId, String code, String finalUrl) throws IOException {
-		OAuthClient client = new OAuthClient();
+		OAuthClient client = getOAuthClient(settings.getProviderType());
 		OAuthTokenResponse response = client.completeAuthentication(settings, code);
 		if (response.getError() != null) {
 			Jsonb json = JsonbBuilder.create();
 			return Response.ok(json.toJson(response)).build();
 		} else {
 			OAuthToken token = createOAuthToken(response, settings.getRedirectUri());
-			OAuthManagerFactory.getInstance().saveToken(getUserId(), dataSourceId, settings.getProviderType(), token);
-			return Response.temporaryRedirect(getAuthenticationSuccessUri(settings.getRedirectUri(), finalUrl)).build();
+			OAuthUserInfo userInfo = client.getUserInfo(token);
+			if (userInfo != null) {
+				token.setUserInfo(userInfo.toJson());
+			}
+			String tokenId = client.getTokenIdentifier(token);
+			token.setId(tokenId);
+			OAuthManagerFactory.getInstance().saveToken(getUserId(), settings.getProviderType(), token);
+			if (dataSourceId != null) {
+				OAuthManagerFactory.getInstance().setDataSourceToken(getUserId(), dataSourceId, tokenId, settings.getProviderType());
+			}
+			return Response.temporaryRedirect(getAuthenticationSuccessUri(settings.getRedirectUri(), finalUrl, tokenId)).build();
 		}
 	}
 	
-	protected URI getAuthenticationSuccessUri(String redirectUri, String finalUrl) {
+	protected URI getAuthenticationSuccessUri(String redirectUri, String finalUrl, String tokenId) {
 		try {
+			String baseUrl;
 			if (finalUrl != null) {
-				return new URI(finalUrl);
+				baseUrl = finalUrl;
 			} else {
-				return new URI(redirectUri.replaceFirst("/callback", "/authenticated"));
+				baseUrl = redirectUri.replaceFirst("/callback", "/authenticated");
 			}
+			String url = baseUrl + (baseUrl.endsWith("/") ? "" : "/") + tokenId;
+			return new URI(url);
 		} catch (URISyntaxException exc) {
 			throw new RuntimeException(exc);
 		}

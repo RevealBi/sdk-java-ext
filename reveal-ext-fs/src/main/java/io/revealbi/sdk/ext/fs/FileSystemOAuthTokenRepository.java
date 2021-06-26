@@ -4,8 +4,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -74,36 +77,147 @@ public class FileSystemOAuthTokenRepository implements IOAuthTokenRepository {
 		}
 	}
 	@Override
-	public synchronized OAuthToken getToken(String userId, String dataSourceId, OAuthProviderType provider) throws IOException {
+	public synchronized OAuthToken getToken(String userId, String tokenId, OAuthProviderType provider) throws IOException {
 		ensureTokens();
-		return tokens.getTokens().get(getTokenId(userId, dataSourceId, provider));
+		OAuthTokenInfo info = tokens.getTokens().get(getTokenInfoId(userId, tokenId, provider));
+		return info == null ? null : info.getToken();
 	}
 
 	@Override
-	public synchronized void saveToken(String userId, String dataSourceId, OAuthProviderType provider, OAuthToken token) throws IOException {
-		ensureTokens();
-		tokens.getTokens().put(getTokenId(userId, dataSourceId, provider), token);
+	public synchronized void saveToken(String userId, OAuthProviderType provider, OAuthToken token) throws IOException {
+		ensureTokens();		
+		String tokenId = token.getId();
+		if (tokenId == null) {
+			tokenId = UUID.randomUUID().toString();
+			token.setId(tokenId);
+		}
+		String tokenInfoId = getTokenInfoId(userId, tokenId, provider);
+		OAuthTokenInfo info = tokens.getTokens().get(tokenInfoId);
+		if (info == null) {
+			info = new OAuthTokenInfo(userId, tokenId, provider, token);
+		} else {
+			info.setToken(token);
+		}
+		tokens.getTokens().put(tokenInfoId, info);
 		saveTokens();
 	}
 	
-	protected String getTokenId(String userId, String dataSourceId, OAuthProviderType provider) {
-		return String.format("%s:%s:%s",userId, dataSourceId, provider);
+	@Override
+	public synchronized void setDataSourceToken(String userId, String dataSourceId, String tokenId, OAuthProviderType provider) throws IOException {
+		ensureTokens();
+		OAuthTokenInfo info = tokens.getTokens().get(getTokenInfoId(userId, tokenId, provider));
+		if (info != null) {
+			info.getDataSources().add(dataSourceId);
+			saveTokens();
+		}
+	}
+	
+	@Override
+	public synchronized OAuthToken getDataSourceToken(String userId, String dataSourceId, OAuthProviderType provider) throws IOException {
+		ensureTokens();
+		for (OAuthTokenInfo info : tokens.getTokens().values()) {
+			if (info.getProvider() == provider && sameUserId(info.getUserId(), userId) && info.getDataSources().contains(dataSourceId)) {
+				return info.getToken();
+			}
+		}
+		//let's see if there's a token with the same id, this is sometimes used, for example for GA, the data source used
+		//while browsing the metadata is created with the token id.
+		return getToken(userId, dataSourceId, provider);
+	}	
+	
+	@Override
+	public synchronized void deleteToken(String userId, String tokenId, OAuthProviderType provider) throws IOException {
+		ensureTokens();
+		tokens.getTokens().remove(getTokenInfoId(userId, tokenId, provider));
+		saveTokens();
+	}
+	
+	protected static boolean sameUserId(String a, String b) {
+		if (a == null) {
+			return b == null;
+		} else {
+			return a.equals(b);
+		}
+	}
+	
+	protected String getTokenInfoId(String userId, String tokenId, OAuthProviderType provider) {
+		return String.format("%s:%s:%s",userId, tokenId, provider);
 	}
 
 	public static class OAuthTokensInfo {
-		private Map<String, OAuthToken> tokens;
+		private Map<String, OAuthTokenInfo> tokens;
 		
 		public OAuthTokensInfo() {			
-			tokens = new HashMap<String, OAuthToken>();
+			tokens = new HashMap<String, OAuthTokenInfo>();
 		}
 
-		public Map<String, OAuthToken> getTokens() {
+		public Map<String, OAuthTokenInfo> getTokens() {
 			return tokens;
 		}
 
-		public void setTokens(Map<String, OAuthToken> tokens) {
+		public void setTokens(Map<String, OAuthTokenInfo> tokens) {
 			this.tokens = tokens;
 		}
+	}
+	
+	public static class OAuthTokenInfo {
+		private OAuthToken token;
+		private String userId;
+		private OAuthProviderType provider;
+		private String tokenId;
+		private List<String> dataSources;
+		
+		public OAuthTokenInfo() {			
+		}
+		
+		public OAuthTokenInfo(String userId, String tokenId, OAuthProviderType provider, OAuthToken token) {
+			super();
+			this.userId = userId;
+			this.tokenId = tokenId;
+			this.provider = provider;
+			this.token = token;
+			this.dataSources = new ArrayList<String>();
+		}
 
+		public OAuthToken getToken() {
+			return token;
+		}
+
+		public void setToken(OAuthToken token) {
+			this.token = token;
+		}
+
+		public String getUserId() {
+			return userId;
+		}
+
+		public void setUserId(String userId) {
+			this.userId = userId;
+		}
+
+		public OAuthProviderType getProvider() {
+			return provider;
+		}
+
+		public void setProvider(OAuthProviderType provider) {
+			this.provider = provider;
+		}
+
+		public String getTokenId() {
+			return tokenId;
+		}
+
+		public void setTokenId(String tokenId) {
+			this.tokenId = tokenId;
+		}
+
+		public List<String> getDataSources() {
+			return dataSources;
+		}
+
+		public void setDataSources(List<String> dataSources) {
+			this.dataSources = dataSources;
+		}
+			
 	}
 }

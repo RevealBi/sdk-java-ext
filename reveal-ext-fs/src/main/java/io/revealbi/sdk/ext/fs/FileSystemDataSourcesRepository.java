@@ -2,11 +2,15 @@ package io.revealbi.sdk.ext.fs;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
+import javax.json.bind.JsonbConfig;
 
 import io.revealbi.sdk.ext.api.DataSourcesInfo;
 import io.revealbi.sdk.ext.api.IDataSourcesRepository;
@@ -50,6 +54,13 @@ public class FileSystemDataSourcesRepository implements IDataSourcesRepository {
 		return dataSources;
 	}
 	
+	@Override
+	public synchronized void saveDataSource(String userId, String dataSourceId, Map<String, Object> json) throws IOException {
+		ensureDataSources();
+		dataSources.getDataSources().add(json);
+		saveDataSources();
+	}
+	
 	private synchronized void ensureDataSources() {
 		File jsonFile = new File(filePath);
 		if (!jsonFile.exists() || jsonFile.isDirectory() || !jsonFile.canRead()) {
@@ -70,6 +81,19 @@ public class FileSystemDataSourcesRepository implements IDataSourcesRepository {
 				log.info("Loaded " + dataSources.getDataSources().size() + " data sources, " + dataSources.getDataSourceItems().size() + " items.");
 			}
 		}
+	}
+	
+	private synchronized void saveDataSources() {
+		JsonbConfig config = new JsonbConfig();
+		config.setProperty(JsonbConfig.FORMATTING, true);
+		Jsonb jsonb = JsonbBuilder.create(config);
+		try (FileOutputStream out = new FileOutputStream(filePath)) {
+			jsonb.toJson(dataSources, out);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Failed to save datasources.json file", e);
+		}
+		File jsonFile = new File(filePath);
+		cacheTimestamp = jsonFile.lastModified();
 	}
 	
 	private static DataSourcesInfo loadFromJson(String filePath) {
