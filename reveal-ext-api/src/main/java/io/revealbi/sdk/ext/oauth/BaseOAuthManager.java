@@ -65,6 +65,11 @@ public class BaseOAuthManager implements IOAuthManager {
 		OAuthTokenRepositoryFactory.getInstance().setDataSourceToken(userId, dataSourceId, tokenId, provider);
 	}
 	
+	@Override
+	public void dataSourceDeleted(String userId, String dataSourceId, OAuthProviderType provider) throws IOException {
+		OAuthTokenRepositoryFactory.getInstance().dataSourceDeleted(userId, dataSourceId, provider);
+	}
+	
 	public void registerProviderSettings(OAuthProviderSettings settings) {
 		map.put(settings.getProviderType(), settings);
 	}

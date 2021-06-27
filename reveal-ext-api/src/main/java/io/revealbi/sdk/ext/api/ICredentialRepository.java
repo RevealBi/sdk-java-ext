@@ -13,4 +13,5 @@ public interface ICredentialRepository extends IRVAuthenticationResolver {
 	
 	Map<String, Object> getDataSourceCredentials(String userId, String dataSourceId) throws IOException;
 	void setDataSourceCredentials(String userId, String dataSourceId, String credentialsId) throws IOException;
+	void dataSourceDeleted(String userId, String dataSourceId, String provider) throws IOException;
 }

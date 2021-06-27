@@ -1,5 +1,8 @@
 package io.revealbi.sdk.ext.base;
 
+import java.io.IOException;
+
+import com.infragistics.reportplus.datalayer.api.ProviderKeys;
 import com.infragistics.reveal.sdk.api.IRVDataSourceCredential;
 import com.infragistics.reveal.sdk.api.model.RVBigQueryDataSource;
 import com.infragistics.reveal.sdk.api.model.RVDashboardDataSource;
@@ -27,6 +30,18 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 		return resolveRegularCredentials(userId, dataSource);
 	}
 	
+	@Override
+	public void dataSourceDeleted(String userId, String dataSourceId, String provider) throws IOException {
+		setDataSourceCredentials(userId, dataSourceId, null);
+		OAuthProviderType oauthProvider = getOAuthProvider(provider);
+		if (oauthProvider != null) {
+			IOAuthManager oauth = OAuthManagerFactory.getInstance();
+			if (oauth != null) {
+				oauth.dataSourceDeleted(userId, dataSourceId, oauthProvider);
+			}
+		}
+	}
+	
 	/**
 	 * Invoked to resolve credentials for non-OAuth data sources, as OAuth data sources are resolved in this class by using the OAuthManagerFactory
 	 * @param userId Id of the user to return credentials for
@@ -39,6 +54,19 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 		if (ds instanceof RVGoogleAnalyticsDataSource) {
 			return OAuthProviderType.GOOGLE_ANALYTICS;
 		} else if (ds instanceof RVBigQueryDataSource) {
+			return OAuthProviderType.GOOGLE_BIG_QUERY;
+		} else {
+			return null;
+		}
+	}
+	
+	protected static OAuthProviderType getOAuthProvider(String provider) {
+		if (provider == null) {
+			return null;			
+		}
+		if (provider.equals(ProviderKeys.googleAnalyticsProviderKey)) {
+			return OAuthProviderType.GOOGLE_ANALYTICS;
+		} else if (provider.equals(ProviderKeys.bigQueryProviderKey)) {
 			return OAuthProviderType.GOOGLE_BIG_QUERY;
 		} else {
 			return null;

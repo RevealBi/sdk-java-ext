@@ -8,5 +8,7 @@ public interface IOAuthTokenRepository {
 	
 	void setDataSourceToken(String userId, String dataSourceId, String tokenId, OAuthProviderType provider) throws IOException;
 	OAuthToken getDataSourceToken(String userId, String dataSourceId, OAuthProviderType provider) throws IOException;
+	void dataSourceDeleted(String userId, String dataSourceId, OAuthProviderType provider) throws IOException;
+	
 	void deleteToken(String userId, String tokenId, OAuthProviderType provider) throws IOException;
 }

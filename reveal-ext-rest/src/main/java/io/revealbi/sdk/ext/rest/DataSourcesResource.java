@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -12,6 +13,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import io.revealbi.sdk.ext.api.CredentialRepositoryFactory;
 import io.revealbi.sdk.ext.api.DataSourcesInfo;
 import io.revealbi.sdk.ext.api.DataSourcesRepositoryFactory;
 import io.revealbi.sdk.ext.api.IDataSourcesRepository;
@@ -35,4 +37,13 @@ public class DataSourcesResource extends BaseResource {
 		DataSourcesRepositoryFactory.getInstance().saveDataSource(getUserId(), dataSourceId, dataSource);
 		return Response.ok().build();
 	}
+	
+	@Path("/{provider}/{dataSourceId}")
+	@DELETE
+	public Response deleteDataSource(@PathParam("provider") String provider, @PathParam("dataSourceId") String dataSourceId) throws IOException {
+		DataSourcesRepositoryFactory.getInstance().deleteDataSource(getUserId(), dataSourceId);		
+		CredentialRepositoryFactory.getInstance().dataSourceDeleted(getUserId(), dataSourceId, provider);
+		return Response.ok().build();
+	}
+
 }

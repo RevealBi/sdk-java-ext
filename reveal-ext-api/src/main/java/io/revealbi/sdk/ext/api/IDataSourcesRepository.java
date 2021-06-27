@@ -6,4 +6,5 @@ import java.util.Map;
 public interface IDataSourcesRepository {
 	DataSourcesInfo getUserDataSources(String userId) throws IOException;
 	void saveDataSource(String userId, String dataSourceId, Map<String, Object> json) throws IOException;
+	void deleteDataSource(String userId, String dataSourceId) throws IOException;
 }

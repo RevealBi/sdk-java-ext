@@ -132,6 +132,26 @@ public class FileSystemOAuthTokenRepository implements IOAuthTokenRepository {
 		saveTokens();
 	}
 	
+	@Override
+	public synchronized void dataSourceDeleted(String userId, String dataSourceId, OAuthProviderType provider) throws IOException {
+		ensureTokens();
+		boolean deleted = false;
+		for (OAuthTokenInfo info : tokens.getTokens().values()) {
+			if (info.getProvider() == provider && sameUserId(info.getUserId(), userId) && info.getDataSources().contains(dataSourceId)) {
+				info.getDataSources().remove(dataSourceId);
+				deleted = true;
+				break;
+			}
+		}
+		if (!deleted) {
+			//let's see if there's a token with the same id, this is sometimes used, for example for GA, the data source used
+			//while browsing the metadata is created with the token id.
+			deleteToken(userId, dataSourceId, provider);
+		}
+		saveTokens();
+	}	
+	
+	
 	protected static boolean sameUserId(String a, String b) {
 		if (a == null) {
 			return b == null;

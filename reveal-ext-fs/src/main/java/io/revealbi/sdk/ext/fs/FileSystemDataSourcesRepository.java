@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -58,6 +60,23 @@ public class FileSystemDataSourcesRepository implements IDataSourcesRepository {
 	public synchronized void saveDataSource(String userId, String dataSourceId, Map<String, Object> json) throws IOException {
 		ensureDataSources();
 		dataSources.getDataSources().add(json);
+		saveDataSources();
+	}
+	
+	@Override
+	public synchronized void deleteDataSource(String userId, String dataSourceId) throws IOException {
+		ensureDataSources();
+		List<Map<String, Object>> list = dataSources.getDataSources();
+		if (list != null) {
+			Iterator<Map<String, Object>> it = list.iterator();
+			while (it.hasNext()) {
+				Map<String, Object> ds = it.next();
+				String dsId = (String)ds.get("Id");
+				if (dsId != null && dsId.equals(dataSourceId)) {
+					it.remove();
+				}
+			}
+		}
 		saveDataSources();
 	}
 	
