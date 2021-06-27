@@ -3,8 +3,24 @@ package io.revealbi.sdk.ext.api;
 import java.io.IOException;
 
 import com.infragistics.reveal.sdk.api.IRVDashboardProvider;
+import com.infragistics.reveal.sdk.util.RVSerializationUtilities;
 
 public interface IDashboardRepository extends IRVDashboardProvider {
+	/**
+	 * Gets the list of dashboards the user has access to, please note the returned objects are "info" objects, containing just 
+	 * a summary of the dashboard so a preview can be rendered client side.
+	 * In order to obtain such summary for a "rdash" file, you can use {@link RVSerializationUtilities#getDashboardSummary(java.io.InputStream)}.
+	 * @param userId The id of the user owning the dashboards requested.
+	 * @return The list of dashboards the user has access to.
+	 * @throws IOException If there was an error loading the list of dashboards from storage.
+	 */
 	DashboardInfo[] getUserDashboards(String userId) throws IOException;
+	
+	/**
+	 * Deletes the specified dashboard from storage.
+	 * @param userId The if of the user performing the operation.
+	 * @param dashboardId The if of the dashboard being deleted.
+	 * @throws IOException If there was an error deleting the dashboard from storage.
+	 */
 	void deleteDashboard(String userId, String dashboardId) throws IOException;
 }

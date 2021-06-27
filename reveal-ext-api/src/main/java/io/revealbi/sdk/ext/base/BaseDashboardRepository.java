@@ -12,7 +12,15 @@ import com.infragistics.reveal.sdk.util.RVSerializationUtilities;
 import io.revealbi.sdk.ext.api.DashboardInfo;
 import io.revealbi.sdk.ext.api.IDashboardRepository;
 
+/**
+ * Base implementation of a dashboard repository, for returning the list of dashboards, you just need 
+ * to implement {@link #getUserDashboardIds(String)} and {@link #getDashboard(String, String)} and 
+ * this base class will take care of generating the dashboard info objects.
+ */
 public abstract class BaseDashboardRepository implements IDashboardRepository {
+	/**
+	 * Returns the list of dashboards, you should extend this class and implement {@link #getUserDashboardIds(String)} and {@link #getDashboard(String, String)}.
+	 */
 	@Override
 	public DashboardInfo[] getUserDashboards(String userId) throws IOException {
 		String[] ids = getUserDashboardIds(userId);

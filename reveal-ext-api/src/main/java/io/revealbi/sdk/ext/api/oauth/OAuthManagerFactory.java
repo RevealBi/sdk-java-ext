@@ -15,6 +15,16 @@ import org.apache.commons.text.StringSubstitutor;
 
 import io.revealbi.sdk.ext.oauth.BaseOAuthManager;
 
+/**
+ * Class taking care of managing the {@link IOAuthManager implementation}, you usually wouldn't need to change the default
+ * instance, so this class would be used mainly to call {@link #registerProviders(String)} to register all providers from a given file,
+ * instead of registering them using {@link IOAuthManager#registerProvider(OAuthProviderType, String, String, String)} in a code like this:
+ * <pre>
+ * {@code
+ * OAuthManagerFactory.getInstance().registerProvider(OAuthProviderType.GOOGLE_ANALYTICS, clientId, clientSecret, redirectUri);
+ * }
+ * </pre>
+ */
 public class OAuthManagerFactory {
 	private static IOAuthManager instance = new BaseOAuthManager();
 	private static Logger log = Logger.getLogger(OAuthManagerFactory.class.getSimpleName());
@@ -26,7 +36,23 @@ public class OAuthManagerFactory {
 	public static IOAuthManager getInstance() {
 		return instance;
 	}
-	
+
+	/**
+	 * Loads all providers to be registered from a JSON document in the given path.
+	 * The format for that file is:
+	 * <pre>
+	 * {
+	 *    "providers": [
+	 *      "GOOGLE_ANALYTICS": {
+	 *        "clientId": "client_id_here",
+	 *        "clientSecret": "client_secret_here",
+	 *        "redirectUri": "redirect_uri_here"
+	 *      }
+	 *    ]
+	 * }
+	 * </pre>
+	 * @param jsonFilePath Location of the JSON document.
+	 */
 	public static void registerProviders(String jsonFilePath) {
 		jsonFilePath = StringSubstitutor.replaceSystemProperties(jsonFilePath);
 		if (jsonFilePath == null) {
