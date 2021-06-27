@@ -1,243 +1,70 @@
 package io.revealbi.sdk.ext.fs;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
-import javax.json.bind.JsonbConfig;
 
 import io.revealbi.sdk.ext.api.oauth.IOAuthTokenRepository;
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderType;
 import io.revealbi.sdk.ext.api.oauth.OAuthToken;
 
+/**
+ * OAuth tokens repository implementation that loads/store data from/to a JSON file.
+ * When the personal flag is true, there will be a separate file for each user, under tokens folder named {userId}.json,
+ * like tokens/guest.json.
+ * If personal is false, all tokens will be shared among users and stored in a single file: tokens.json.
+ */
 public class FileSystemOAuthTokenRepository implements IOAuthTokenRepository {
-	private static Logger log = Logger.getLogger(FileSystemDataSourcesRepository.class.getName());
+	private static final String SINGLE_USER_KEY = "tokens";
 	
-	private String filePath;
-	private OAuthTokensInfo tokens;
-	private long cacheTimestamp;
+	private String rootDir;
+	private boolean personal;
+	private Map<String, SingleUserOAuthTokenRepository> repositories;
 	
-	public FileSystemOAuthTokenRepository(String filePath) {
-		this.filePath = filePath;
+	public FileSystemOAuthTokenRepository(String rootDir, boolean personal) {
+		this.rootDir = rootDir;
+		this.personal = personal;
+		this.repositories = new HashMap<String, SingleUserOAuthTokenRepository>();
 	}
 	
-	private void ensureTokens() {
-		File jsonFile = new File(filePath);
-		if (!jsonFile.exists() || jsonFile.isDirectory() || !jsonFile.canRead()) {
-			tokens = new OAuthTokensInfo();
-			return;
-		}
-		
-		if (cacheTimestamp != jsonFile.lastModified()) {
-			if (cacheTimestamp > 0) {
-				log.info("Detected changes in tokens.json, loading again");
-			}
-			tokens = loadFromJson(filePath);
-			if (tokens == null) { //load failed
-				tokens = new OAuthTokensInfo();
-			} else {				
-				cacheTimestamp = jsonFile.lastModified();
-				
-				log.info("Loaded " + tokens.getTokens().size() + " OAuth token(s)");
-			}
-		}
-	}
-	
-	private void saveTokens() {		
-		JsonbConfig config = new JsonbConfig();
-		config.setProperty(JsonbConfig.FORMATTING, true);
-		Jsonb jsonb = JsonbBuilder.create(config);
-		try (FileOutputStream out = new FileOutputStream(filePath)) {
-			jsonb.toJson(tokens, out);
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Failed to save tokens.json file", e);
-		}
-		File jsonFile = new File(filePath);
-		cacheTimestamp = jsonFile.lastModified();
-	}
-	
-	private static OAuthTokensInfo loadFromJson(String filePath) {
-		Jsonb jsonb = JsonbBuilder.create();
-		try {
-			OAuthTokensInfo info = jsonb.fromJson(new FileInputStream(filePath), OAuthTokensInfo.class);
-			return info;
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Failed to load tokens.json file", e);
-			return null;
-		}
-	}
 	@Override
-	public synchronized OAuthToken getToken(String userId, String tokenId, OAuthProviderType provider) throws IOException {
-		ensureTokens();
-		OAuthTokenInfo info = tokens.getTokens().get(getTokenInfoId(userId, tokenId, provider));
-		return info == null ? null : info.getToken();
+	public OAuthToken getToken(String userId, String tokenId, OAuthProviderType provider) throws IOException {
+		return getRepository(userId).getToken(tokenId, provider);
 	}
 
 	@Override
-	public synchronized void saveToken(String userId, OAuthProviderType provider, OAuthToken token) throws IOException {
-		ensureTokens();		
-		String tokenId = token.getId();
-		if (tokenId == null) {
-			tokenId = UUID.randomUUID().toString();
-			token.setId(tokenId);
-		}
-		String tokenInfoId = getTokenInfoId(userId, tokenId, provider);
-		OAuthTokenInfo info = tokens.getTokens().get(tokenInfoId);
-		if (info == null) {
-			info = new OAuthTokenInfo(userId, tokenId, provider, token);
-		} else {
-			info.setToken(token);
-		}
-		tokens.getTokens().put(tokenInfoId, info);
-		saveTokens();
+	public void saveToken(String userId, OAuthProviderType provider, OAuthToken token) throws IOException {
+		getRepository(userId).saveToken(provider, token);
 	}
 	
 	@Override
-	public synchronized void setDataSourceToken(String userId, String dataSourceId, String tokenId, OAuthProviderType provider) throws IOException {
-		ensureTokens();
-		OAuthTokenInfo info = tokens.getTokens().get(getTokenInfoId(userId, tokenId, provider));
-		if (info != null) {
-			info.getDataSources().add(dataSourceId);
-			saveTokens();
-		}
+	public void setDataSourceToken(String userId, String dataSourceId, String tokenId, OAuthProviderType provider) throws IOException {
+		getRepository(userId).setDataSourceToken(dataSourceId, tokenId, provider);
 	}
 	
 	@Override
-	public synchronized OAuthToken getDataSourceToken(String userId, String dataSourceId, OAuthProviderType provider) throws IOException {
-		ensureTokens();
-		for (OAuthTokenInfo info : tokens.getTokens().values()) {
-			if (info.getProvider() == provider && sameUserId(info.getUserId(), userId) && info.getDataSources().contains(dataSourceId)) {
-				return info.getToken();
-			}
-		}
-		//let's see if there's a token with the same id, this is sometimes used, for example for GA, the data source used
-		//while browsing the metadata is created with the token id.
-		return getToken(userId, dataSourceId, provider);
+	public OAuthToken getDataSourceToken(String userId, String dataSourceId, OAuthProviderType provider) throws IOException {
+		return getRepository(userId).getDataSourceToken(dataSourceId, provider);
 	}	
 	
 	@Override
-	public synchronized void deleteToken(String userId, String tokenId, OAuthProviderType provider) throws IOException {
-		ensureTokens();
-		tokens.getTokens().remove(getTokenInfoId(userId, tokenId, provider));
-		saveTokens();
+	public void deleteToken(String userId, String tokenId, OAuthProviderType provider) throws IOException {
+		getRepository(userId).deleteToken(tokenId, provider);
 	}
 	
 	@Override
-	public synchronized void dataSourceDeleted(String userId, String dataSourceId, OAuthProviderType provider) throws IOException {
-		ensureTokens();
-		boolean deleted = false;
-		for (OAuthTokenInfo info : tokens.getTokens().values()) {
-			if (info.getProvider() == provider && sameUserId(info.getUserId(), userId) && info.getDataSources().contains(dataSourceId)) {
-				info.getDataSources().remove(dataSourceId);
-				deleted = true;
-				break;
-			}
-		}
-		if (!deleted) {
-			//let's see if there's a token with the same id, this is sometimes used, for example for GA, the data source used
-			//while browsing the metadata is created with the token id.
-			deleteToken(userId, dataSourceId, provider);
-		}
-		saveTokens();
+	public void dataSourceDeleted(String userId, String dataSourceId, OAuthProviderType provider) throws IOException {
+		getRepository(userId).dataSourceDeleted(dataSourceId, provider);
 	}	
 	
-	
-	protected static boolean sameUserId(String a, String b) {
-		if (a == null) {
-			return b == null;
-		} else {
-			return a.equals(b);
+	private synchronized SingleUserOAuthTokenRepository getRepository(String userId) {
+		String key = personal ? userId : SINGLE_USER_KEY;
+		SingleUserOAuthTokenRepository repo = repositories.get(key);
+		if (repo == null) {
+			repo = new SingleUserOAuthTokenRepository(new File(rootDir, key + ".json").getAbsolutePath());
+			repositories.put(key, repo);
 		}
-	}
-	
-	protected String getTokenInfoId(String userId, String tokenId, OAuthProviderType provider) {
-		return String.format("%s:%s:%s",userId, tokenId, provider);
-	}
-
-	public static class OAuthTokensInfo {
-		private Map<String, OAuthTokenInfo> tokens;
-		
-		public OAuthTokensInfo() {			
-			tokens = new HashMap<String, OAuthTokenInfo>();
-		}
-
-		public Map<String, OAuthTokenInfo> getTokens() {
-			return tokens;
-		}
-
-		public void setTokens(Map<String, OAuthTokenInfo> tokens) {
-			this.tokens = tokens;
-		}
-	}
-	
-	public static class OAuthTokenInfo {
-		private OAuthToken token;
-		private String userId;
-		private OAuthProviderType provider;
-		private String tokenId;
-		private List<String> dataSources;
-		
-		public OAuthTokenInfo() {			
-		}
-		
-		public OAuthTokenInfo(String userId, String tokenId, OAuthProviderType provider, OAuthToken token) {
-			super();
-			this.userId = userId;
-			this.tokenId = tokenId;
-			this.provider = provider;
-			this.token = token;
-			this.dataSources = new ArrayList<String>();
-		}
-
-		public OAuthToken getToken() {
-			return token;
-		}
-
-		public void setToken(OAuthToken token) {
-			this.token = token;
-		}
-
-		public String getUserId() {
-			return userId;
-		}
-
-		public void setUserId(String userId) {
-			this.userId = userId;
-		}
-
-		public OAuthProviderType getProvider() {
-			return provider;
-		}
-
-		public void setProvider(OAuthProviderType provider) {
-			this.provider = provider;
-		}
-
-		public String getTokenId() {
-			return tokenId;
-		}
-
-		public void setTokenId(String tokenId) {
-			this.tokenId = tokenId;
-		}
-
-		public List<String> getDataSources() {
-			return dataSources;
-		}
-
-		public void setDataSources(List<String> dataSources) {
-			this.dataSources = dataSources;
-		}
-			
+		return repo;
 	}
 }

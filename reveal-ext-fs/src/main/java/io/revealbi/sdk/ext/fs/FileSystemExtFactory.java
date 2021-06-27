@@ -30,14 +30,14 @@ public class FileSystemExtFactory {
 	 * {@link FileSystemCredentialRepository}, {@link FileSystemDashboardRepository} and {@link FileSystemDataSourcesRepository}
 	 * 
 	 * @param rootDir The parent directory to be used to store all files, write permission is required. It supports system properties with the syntax ${property}, like ${user.home}/folder/
-	 * @param personalDashboards A boolean flag indicating if dashboards should be personal or global for all users.
+	 * @param personal A boolean flag indicating if data should be personal or global for all users.
 	 */
-	public static void registerAllServices(String rootDir, boolean personalDashboards) {
+	public static void registerAllServices(String rootDir, boolean personal) {
 		rootDir = StringSubstitutor.replaceSystemProperties(rootDir);
-		DashboardRepositoryFactory.setInstance(new FileSystemDashboardRepository(getDashboardsRootDir(rootDir), personalDashboards));
-		CredentialRepositoryFactory.setInstance(new FileSystemCredentialRepository(getCredentialsFilePath(rootDir)));
-		DataSourcesRepositoryFactory.setInstance(new FileSystemDataSourcesRepository(getDataSourcesFilePath(rootDir)));
-		OAuthTokenRepositoryFactory.setInstance(new FileSystemOAuthTokenRepository(getOAuthTokensFilePath(rootDir)));
+		DashboardRepositoryFactory.setInstance(new FileSystemDashboardRepository(getDashboardsRootDir(rootDir), personal));
+		CredentialRepositoryFactory.setInstance(new FileSystemCredentialRepository(getCredentialsRootDir(rootDir, personal), personal));
+		DataSourcesRepositoryFactory.setInstance(new FileSystemDataSourcesRepository(getDataSourcesRootPath(rootDir, personal), personal));
+		OAuthTokenRepositoryFactory.setInstance(new FileSystemOAuthTokenRepository(getOAuthTokensRootDir(rootDir, personal), personal));
 	}
 	
 	public static void installSampleDashboards(String userId, Class<?> clazz, String[] resources) {
@@ -60,16 +60,23 @@ public class FileSystemExtFactory {
 	private static String getDashboardsRootDir(String rootDir) {
 		return new File(rootDir, "dashboards").getAbsolutePath();
 	}
-	private static String getCredentialsFilePath(String rootDir) {
-		return new File(rootDir, "credentials.json").getAbsolutePath();
+	private static String getCredentialsRootDir(String rootDir, boolean personal) {
+		if (!personal) {
+			return rootDir;
+		}
+		return new File(rootDir, "credentials").getAbsolutePath();
+	}	
+	private static String getDataSourcesRootPath(String rootDir, boolean personal) {
+		if (!personal) {
+			return rootDir;
+		}
+		return new File(rootDir, "datasources").getAbsolutePath();
 	}
-
-	private static String getDataSourcesFilePath(String rootDir) {
-		return new File(rootDir, "datasources.json").getAbsolutePath();
-	}
-	
-	private static String getOAuthTokensFilePath(String rootDir) {
-		return new File(rootDir, "tokens.json").getAbsolutePath();
+	private static String getOAuthTokensRootDir(String rootDir, boolean personal) {
+		if (!personal) {
+			return rootDir;
+		}
+		return new File(rootDir, "tokens").getAbsolutePath();
 	}
 
 }

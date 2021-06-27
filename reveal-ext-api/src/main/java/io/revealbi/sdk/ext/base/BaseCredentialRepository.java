@@ -31,8 +31,8 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 	}
 	
 	@Override
-	public void dataSourceDeleted(String userId, String dataSourceId, String provider) throws IOException {
-		setDataSourceCredentials(userId, dataSourceId, null);
+	public void dataSourceDeleted(String userId, String dataSourceId, String provider, String uniqueIdentifier) throws IOException {
+		setDataSourceCredentials(userId, uniqueIdentifier == null ? dataSourceId : uniqueIdentifier, null);
 		OAuthProviderType oauthProvider = getOAuthProvider(provider);
 		if (oauthProvider != null) {
 			IOAuthManager oauth = OAuthManagerFactory.getInstance();

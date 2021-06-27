@@ -10,6 +10,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -40,9 +41,9 @@ public class DataSourcesResource extends BaseResource {
 	
 	@Path("/{provider}/{dataSourceId}")
 	@DELETE
-	public Response deleteDataSource(@PathParam("provider") String provider, @PathParam("dataSourceId") String dataSourceId) throws IOException {
+	public Response deleteDataSource(@PathParam("provider") String provider, @PathParam("dataSourceId") String dataSourceId, @QueryParam("uniqueIdentifier") String uniqueIdentifier) throws IOException {
 		DataSourcesRepositoryFactory.getInstance().deleteDataSource(getUserId(), dataSourceId);		
-		CredentialRepositoryFactory.getInstance().dataSourceDeleted(getUserId(), dataSourceId, provider);
+		CredentialRepositoryFactory.getInstance().dataSourceDeleted(getUserId(), dataSourceId, provider, uniqueIdentifier);
 		return Response.ok().build();
 	}
 
