@@ -2,6 +2,7 @@ package io.revealbi.sdk.ext.oauth;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URLEncoder;
 
 import javax.json.bind.Jsonb;
@@ -28,7 +29,9 @@ public abstract class OAuthClient {
 	public abstract String getTokenIdentifier(OAuthToken token);
 	
 	public abstract OAuthUserInfo getUserInfo(OAuthToken token) throws IOException;
-	
+
+	public abstract URI getAuthenticationURI(OAuthProviderSettings settings, String encodedState);
+
 	private OAuthTokenResponse performTokenAction(OAuthProviderSettings settings, String requestBody) throws UnsupportedEncodingException, IOException {
 		OkHttpClient client = new OkHttpClient.Builder().build();
 		Request request = new Request.Builder().

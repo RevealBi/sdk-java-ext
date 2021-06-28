@@ -208,29 +208,15 @@ public class OAuthResource extends BaseResource {
 	    return hexString.toString();
 	}
 	
-	private static URI getAuthURI(OAuthProviderSettings settings, Map<String, String> state) {
-		StringBuilder builder = new StringBuilder(settings.getAuthEndpoint());
-		builder.append("?").
-			append("access_type=offline").
-			append("&response_type=code");
-		
-		String scope = settings.getScope();
-		String clientId = settings.getClientId();
-		String redirectUri = settings.getRedirectUri();
-		
-		if (scope != null) {
-			builder.append("&scope=").append(scope);
-		}
-		if (clientId != null) {
-			builder.append("&client_id=").append(clientId);
-		}
-		if (redirectUri != null) {
-			builder.append("&redirect_uri=").append(redirectUri);
-		}
+	private URI getAuthURI(OAuthProviderSettings settings, Map<String, String> state) {
+		OAuthClient client = getOAuthClient(settings.getProviderType());
+		String encodedState;
 		if (state != null && !state.isEmpty()) {
-			builder.append("&state=").append(encodeState(state));
+			encodedState = encodeState(state);
+		} else {
+			encodedState = null;
 		}
-		return URI.create(builder.toString());
+		return client.getAuthenticationURI(settings, encodedState);
 	}
 	
 	private static String encodeState(Map<String, String> state) {

@@ -1,6 +1,7 @@
 package io.revealbi.sdk.ext.oauth;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -8,6 +9,7 @@ import java.util.UUID;
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
 
+import io.revealbi.sdk.ext.api.oauth.OAuthProviderSettings;
 import io.revealbi.sdk.ext.api.oauth.OAuthToken;
 import io.revealbi.sdk.ext.api.oauth.OAuthUserInfo;
 import okhttp3.OkHttpClient;
@@ -48,6 +50,33 @@ public class GoogleOAuthClient extends OAuthClient {
 		} else {
 			return null;
 		}
+	}
+	
+	@Override
+	public URI getAuthenticationURI(OAuthProviderSettings settings, String encodedState) {
+		StringBuilder builder = new StringBuilder(settings.getAuthEndpoint());
+		builder.append("?").
+			append("access_type=offline").
+			append("prompt=consent").
+			append("&response_type=code");
+		
+		String scope = settings.getScope();
+		String clientId = settings.getClientId();
+		String redirectUri = settings.getRedirectUri();
+		
+		if (scope != null) {
+			builder.append("&scope=").append(scope);
+		}
+		if (clientId != null) {
+			builder.append("&client_id=").append(clientId);
+		}
+		if (redirectUri != null) {
+			builder.append("&redirect_uri=").append(redirectUri);
+		}
+		if (encodedState != null) {
+			builder.append("&state=").append(encodedState);
+		}
+		return URI.create(builder.toString());
 	}
 	
 	public static class GoogleUserInfo implements OAuthUserInfo {
