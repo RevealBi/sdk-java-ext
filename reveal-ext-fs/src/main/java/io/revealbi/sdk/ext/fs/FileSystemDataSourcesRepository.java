@@ -1,12 +1,9 @@
 package io.revealbi.sdk.ext.fs;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import io.revealbi.sdk.ext.api.DataSourcesInfo;
 import io.revealbi.sdk.ext.api.IDataSourcesRepository;
@@ -32,55 +29,46 @@ import io.revealbi.sdk.ext.api.IDataSourcesRepository;
  * }}</pre>
  * 
  * Changes to the file are detected and automatically loaded, no need to restart the server if the file was modified.
+ * When the personal flag is true, there will be a separate file for each user, under datasources folder named {userId}.json,
+ * like datasources/guest.json.
+ * If personal is false, all datasources will be shared among users and stored in a single file: datasources.json.
  */
 public class FileSystemDataSourcesRepository implements IDataSourcesRepository {
-	private static Logger log = Logger.getLogger(FileSystemDataSourcesRepository.class.getName());
+	private static final String SINGLE_USER_KEY = "datasources";
 	
-	private String filePath;
-	private DataSourcesInfo dataSources;
-	private long cacheTimestamp;
+	private String rootDir;
+	private boolean personal;
+	private Map<String, SingleUserDataSourcesRepository> repositories;
 	
-	public FileSystemDataSourcesRepository(String filePath) {
-		this.filePath = filePath;
+	public FileSystemDataSourcesRepository(String rootDir, boolean personal) {
+		this.rootDir = rootDir;
+		this.personal = personal;
+		this.repositories = new HashMap<String, SingleUserDataSourcesRepository>();
 	}
 	
 	@Override
 	public DataSourcesInfo getUserDataSources(String userId) {
-		ensureDataSources();
-		return dataSources;
+		return getRepository(userId).getDataSources();
 	}
 	
-	private synchronized void ensureDataSources() {
-		File jsonFile = new File(filePath);
-		if (!jsonFile.exists() || jsonFile.isDirectory() || !jsonFile.canRead()) {
-			dataSources = new DataSourcesInfo();
-			return;
-		}
-		
-		if (cacheTimestamp != jsonFile.lastModified()) {
-			if (cacheTimestamp > 0) {
-				log.info("Detected changes in credentials.json, loading again");
-			}
-			dataSources = loadFromJson(filePath);
-			if (dataSources == null) { //load failed
-				dataSources = new DataSourcesInfo();
-			} else {				
-				cacheTimestamp = jsonFile.lastModified();
-				
-				log.info("Loaded " + dataSources.getDataSources().size() + " data sources, " + dataSources.getDataSourceItems().size() + " items.");
-			}
-		}
+	@Override
+	public void saveDataSource(String userId, String dataSourceId, Map<String, Object> json) throws IOException {
+		getRepository(userId).saveDataSource(dataSourceId, json);
 	}
 	
-	private static DataSourcesInfo loadFromJson(String filePath) {
-		Jsonb jsonb = JsonbBuilder.create();
-		try {
-			DataSourcesInfo info = jsonb.fromJson(new FileInputStream(filePath), DataSourcesInfo.class);
-			return info;
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Failed to load datasources.json file", e);
-			return null;
+	@Override
+	public void deleteDataSource(String userId, String dataSourceId) throws IOException {
+		getRepository(userId).deleteDataSource(dataSourceId);
+	}
+	
+	private synchronized SingleUserDataSourcesRepository getRepository(String userId) {
+		String key = personal ? userId : SINGLE_USER_KEY;
+		SingleUserDataSourcesRepository repo = repositories.get(key);
+		if (repo == null) {
+			repo = new SingleUserDataSourcesRepository(new File(rootDir, key + ".json").getAbsolutePath());
+			repositories.put(key, repo);
 		}
+		return repo;
 	}
 
 }

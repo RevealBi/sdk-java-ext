@@ -1,20 +1,15 @@
 package io.revealbi.sdk.ext.fs;
 
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
 
 import com.infragistics.reveal.sdk.api.IRVDataSourceCredential;
-import com.infragistics.reveal.sdk.api.RVUsernamePasswordDataSourceCredential;
 import com.infragistics.reveal.sdk.api.model.RVDashboardDataSource;
 
-import io.revealbi.sdk.ext.api.ICredentialRepository;
+import io.revealbi.sdk.ext.base.BaseCredentialRepository;
 
 /**
  * Credentials repository implementation that loads credentials from a JSON document.
@@ -25,120 +20,76 @@ import io.revealbi.sdk.ext.api.ICredentialRepository;
  *   "credentials": 
  *   [
  *    {
- * 	    "dataSourceId": "id matching the id defined in datasources.json",
+ * 	    "id": "unique id for this account",
  * 	    "userName": "",
- * 	    "password": ""
+ * 	    "password": "",
+ * 		"dataSources": [
+ * 			"dataSourceId" //id of the data source using this account, matching the id defined in datasources.json
+ * 		]
  * 	  }
  *   ]
  * }}</pre>
  * 
  * Changes to the file are detected and automatically loaded, no need to restart the server if the file was modified.
+ * When the personal flag is true, there will be a separate file for each user, under credentials folder named {userId}.json,
+ * like credentials/guest.json.
+ * If personal is false, all credentials will be shared among users and stored in a single file: credentials.json.
  */
-public class FileSystemCredentialRepository implements ICredentialRepository {
-	private static Logger log = Logger.getLogger(FileSystemCredentialRepository.class.getName());
+public class FileSystemCredentialRepository extends BaseCredentialRepository {
+	private static final String SINGLE_USER_KEY = "credentials";
 	
-	private String filePath;
-	private Map<String, IRVDataSourceCredential> credentials;
-	private long cacheTimestamp;
+	private String rootDir;
+	private boolean personal;
+	private Map<String, SingleUserCredentialRepository> repositories;
 	
-	public FileSystemCredentialRepository(String filePath) {
-		this.filePath = filePath;
+	public FileSystemCredentialRepository(String rootDir, boolean personal) {
+		this.rootDir = rootDir;
+		this.personal = personal;
+		this.repositories = new HashMap<String, SingleUserCredentialRepository>();
 	}
 	
 	@Override
-	public IRVDataSourceCredential resolveCredentials(String userId, RVDashboardDataSource ds) {
-		return getDataSourceCredential(ds);
-	}
-
-	private synchronized IRVDataSourceCredential getDataSourceCredential(RVDashboardDataSource ds) {
-		ensureCredentials();
-		return credentials.get(ds.getId());
+	protected IRVDataSourceCredential resolveRegularCredentials(String userId, RVDashboardDataSource ds) {		
+		return getRepository(userId).resolveCredentials(ds);
 	}
 	
-	private synchronized void ensureCredentials() {
-		File jsonFile = new File(filePath);
-		if (!jsonFile.exists() || jsonFile.isDirectory() || !jsonFile.canRead()) {
-			credentials = new HashMap<String, IRVDataSourceCredential>();
-			return;
-		}
-		
-		if (cacheTimestamp != jsonFile.lastModified()) {
-			if (cacheTimestamp > 0) {
-				log.info("Detected changes in credentials.json, loading again");
-			}
-			credentials = loadFromJson(filePath);
-			if (credentials == null) { //load failed
-				credentials = new HashMap<String, IRVDataSourceCredential>();
-			} else {				
-				cacheTimestamp = jsonFile.lastModified();
-				
-				log.info("Loaded credentials: " + credentials.keySet());
-			}
-		}
+	@Override
+	public IRVDataSourceCredential getCredentialsById(String userId, String accountId) {
+		return getRepository(userId).getCredentialsById(accountId);
 	}
 	
-	private static Map<String, IRVDataSourceCredential> loadFromJson(String filePath) {
-		Jsonb jsonb = JsonbBuilder.create();
-		try {
-			CredentialsConfig config = jsonb.fromJson(new FileInputStream(filePath), CredentialsConfig.class);
-			return config.getCredentialsMap();
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Failed to load credentials.json file", e);
-			return null;
-		}
+	@Override
+	public String saveCredentials(String userId, String id, Map<String, Object> json) throws IOException {
+		return getRepository(userId).saveCredentials(id, json);
 	}
 
-	public static class CredentialsConfig {
-		public Credential[] credentials;
+	@Override
+	public Map<String, Object> getDataSourceCredentials(String userId, String dataSourceId) throws IOException {
+		return getRepository(userId).getDataSourceCredentials(dataSourceId);
+	}
 		
-		public Map<String, IRVDataSourceCredential> getCredentialsMap() {
-			Map<String, IRVDataSourceCredential> map = new HashMap<String, IRVDataSourceCredential>();
-			if (credentials != null) {
-				for (Credential c : credentials) {
-					if (c.getDataSourceId() == null) {
-						continue;
-					}
-					map.put(c.getDataSourceId(), c.getDataSourceCredential());
-				}
-			}
-			
-			return map;
-		}
+	@Override
+	public List<Map<String, Object>> getCredentials(String userId) throws IOException {
+		return getRepository(userId).getCredentials();
+	}
+
+	@Override
+	public boolean deleteCredentials(String userId, String id) {
+		return getRepository(userId).deleteCredentials(id);
 	}
 	
-	public static class Credential {
-		private String dataSourceId;
-		private String userName;
-		private String domain;
-		private String password;		
-
-		public String getDataSourceId() {
-			return dataSourceId;
+	@Override
+	public void setDataSourceCredentials(String userId, String dataSourceId, String credentialsId) throws IOException {
+		getRepository(userId).setDataSourceCredentials(dataSourceId, credentialsId);
+	}
+	
+	private synchronized SingleUserCredentialRepository getRepository(String userId) {
+		String key = personal ? userId : SINGLE_USER_KEY;
+		SingleUserCredentialRepository repo = repositories.get(key);
+		if (repo == null) {
+			repo = new SingleUserCredentialRepository(new File(rootDir, key + ".json").getAbsolutePath());
+			repositories.put(key, repo);
 		}
-		public void setDataSourceId(String dataSourceId) {
-			this.dataSourceId = dataSourceId;
-		}
-		public String getUserName() {
-			return userName;
-		}
-		public void setUserName(String userName) {
-			this.userName = userName;
-		}
-		public String getDomain() {
-			return domain;
-		}
-		public void setDomain(String domain) {
-			this.domain = domain;
-		}
-		public String getPassword() {
-			return password;
-		}
-		public void setPassword(String password) {
-			this.password = password;
-		}
-		
-		public IRVDataSourceCredential getDataSourceCredential() {
-			return new RVUsernamePasswordDataSourceCredential(userName, password, domain);
-		}
+		return repo;
 	}
 }
