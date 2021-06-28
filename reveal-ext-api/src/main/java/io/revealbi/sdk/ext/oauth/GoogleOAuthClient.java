@@ -57,7 +57,7 @@ public class GoogleOAuthClient extends OAuthClient {
 		StringBuilder builder = new StringBuilder(settings.getAuthEndpoint());
 		builder.append("?").
 			append("access_type=offline").
-			append("prompt=consent").
+			append("&prompt=consent").
 			append("&response_type=code");
 		
 		String scope = settings.getScope();

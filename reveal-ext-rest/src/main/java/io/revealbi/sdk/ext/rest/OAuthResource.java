@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
@@ -36,6 +37,7 @@ import io.revealbi.sdk.ext.oauth.OAuthTokenResponse;
 
 @Path("/oauth")
 public class OAuthResource extends BaseResource {	
+	private static Logger log = Logger.getLogger(OAuthResource.class.getSimpleName());
 	
 	protected IOAuthManager getOAuthManager() {
 		IOAuthManager manager = OAuthManagerFactory.getInstance();
@@ -130,6 +132,9 @@ public class OAuthResource extends BaseResource {
 			return Response.ok(json.toJson(response)).build();
 		} else {
 			OAuthToken token = createOAuthToken(response, settings.getRedirectUri());
+			if (token.getRefreshToken() == null) {
+				log.warning("No refreshToken obtained for provider: " + settings.getProviderType());
+			}
 			OAuthUserInfo userInfo = client.getUserInfo(token);
 			if (userInfo != null) {
 				token.setUserInfo(userInfo.toJson());
