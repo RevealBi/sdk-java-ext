@@ -110,7 +110,6 @@ public class BaseOAuthManager implements IOAuthManager {
 	 * Refreshes the token, must save the token and update refresh and access tokens in the token parameter.
 	 * @param userId Id of the user this token is associated with.
 	 * @param dataSourceId Id of the data source linked to the token.
-	 * @param tokenId Id of the token to be refreshed.
 	 * @param provider The OAuth provider this token belongs to.
 	 * @param token The token to refresh.
 	 * @throws IOException If an I/O error occurs refreshing the token 
