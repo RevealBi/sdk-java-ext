@@ -56,7 +56,7 @@ public interface IOAuthTokenRepository {
 	OAuthToken getDataSourceToken(String userId, String dataSourceId, OAuthProviderType provider) throws IOException;
 	
 	/**
-	 * Gets notified that a data source was deleted and should clear any information associated to it, like the assocation to a token.
+	 * Gets notified that a data source was deleted and should clear any information associated to it, like the association to a token.
 	 * @param userId The id of the user that owns the data source.
 	 * @param dataSourceId The id of the data source that was deleted.
 	 * @param provider The provider associated to the data source, that created the token associated to it (if any).
