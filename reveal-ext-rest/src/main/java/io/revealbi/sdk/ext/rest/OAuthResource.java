@@ -50,12 +50,27 @@ public class OAuthResource extends BaseResource {
 	@Path("/{providerType}/auth/{dataSourceId}")
 	@GET
 	public Response doAuth(@PathParam("providerType") OAuthProviderType providerType, @PathParam("dataSourceId") String dataSourceId, @QueryParam("finalUrl") String finalUrl) throws URISyntaxException {
+		URI uri = getOAuthAuthenticationURI(providerType, dataSourceId, finalUrl);
+		return Response.temporaryRedirect(uri).build();
+	}
+
+	@Path("/{providerType}/authUrl/{dataSourceId}")
+	@GET
+	public Response doAuthUrl(@PathParam("providerType") OAuthProviderType providerType, @PathParam("dataSourceId") String dataSourceId, @QueryParam("finalUrl") String finalUrl) throws URISyntaxException {
+		URI uri = getOAuthAuthenticationURI(providerType, dataSourceId, finalUrl);
+		Map<String, Object> json = new HashMap<String, Object>();
+		json.put("url", uri.toString());
+		return Response.ok(json).build();
+	}
+
+	private URI getOAuthAuthenticationURI(OAuthProviderType providerType, String dataSourceId, String finalUrl) throws URISyntaxException {
 		if (dataSourceId != null && dataSourceId.equals("_new")) {
 			dataSourceId = null;
 		}
 		OAuthProviderSettings settings = providerType == null ? null : getOAuthManager().getProviderSettings(providerType);
 		if (settings == null || settings.getAuthEndpoint() == null) {
-			return Response.status(Status.NOT_FOUND).build();
+			log.warning("No OAuth configuration found for: " + providerType);
+			throw new WebApplicationException(Status.NOT_FOUND);
 		}
 		Map<String, String> state = getAuthState();
 		if (dataSourceId != null) {
@@ -64,7 +79,7 @@ public class OAuthResource extends BaseResource {
 		if (finalUrl != null) {
 			state.put("finalUrl", finalUrl);
 		}
-		return Response.temporaryRedirect(getAuthURI(settings, state)).build();
+		return getAuthURI(settings, state);
 	}
 	
 	@Path("/{providerType}/callback")
