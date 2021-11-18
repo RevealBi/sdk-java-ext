@@ -7,6 +7,7 @@ public class OAuthClientFactory {
 		switch (provider) {
 		case GOOGLE_ANALYTICS:
 		case GOOGLE_BIG_QUERY:
+		case GOOGLE_DRIVE:
 			return new GoogleOAuthClient();
 		default:
 			throw new RuntimeException("Client not found for " + provider);

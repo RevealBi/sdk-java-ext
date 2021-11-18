@@ -21,6 +21,10 @@ public class OAuthProviderSettings {
 	public static OAuthProviderSettings createBigQuerySettings(String clientId, String clientSecret, String redirectUri) {
 		return new OAuthProviderSettings(OAuthProviderType.GOOGLE_BIG_QUERY, GOOGLE_OAUTH_AUTH_ENDPOINT, GOOGLE_OAUTH_TOKEN_ENDPOINT, clientId, clientSecret, GOOGLE_BIGQUERY_SCOPE, redirectUri);
 	}
+	
+	public static OAuthProviderSettings createGoogleDriveSettings(String clientId, String clientSecret, String redirectUri) {
+		return new OAuthProviderSettings(OAuthProviderType.GOOGLE_DRIVE, GOOGLE_OAUTH_AUTH_ENDPOINT, GOOGLE_OAUTH_TOKEN_ENDPOINT, clientId, clientSecret, "https://www.googleapis.com/auth/userinfo.email%20https://www.googleapis.com/auth/userinfo.profile%20https://www.googleapis.com/auth/drive", redirectUri);
+	}
 
 	public OAuthProviderSettings(OAuthProviderType providerType, String authEndpoint, String tokenEndpoint, String clientId, String clientSecret, String scope, String redirectUri) {
 		this.providerType = providerType;

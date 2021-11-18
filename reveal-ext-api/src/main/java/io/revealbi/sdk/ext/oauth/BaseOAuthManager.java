@@ -83,6 +83,9 @@ public class BaseOAuthManager implements IOAuthManager {
 		case GOOGLE_BIG_QUERY:
 			registerProviderSettings(OAuthProviderSettings.createBigQuerySettings(clientId, clientSecret, redirectUri));
 			break;
+		case GOOGLE_DRIVE:
+			registerProviderSettings(OAuthProviderSettings.createGoogleDriveSettings(clientId, clientSecret, redirectUri));
+			break;
 		}
 	}
 

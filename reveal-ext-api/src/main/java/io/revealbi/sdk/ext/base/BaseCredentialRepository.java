@@ -8,6 +8,7 @@ import com.infragistics.reveal.sdk.api.IRVUserContext;
 import com.infragistics.reveal.sdk.api.model.RVBigQueryDataSource;
 import com.infragistics.reveal.sdk.api.model.RVDashboardDataSource;
 import com.infragistics.reveal.sdk.api.model.RVGoogleAnalyticsDataSource;
+import com.infragistics.reveal.sdk.api.model.RVGoogleDriveDataSource;
 
 import io.revealbi.sdk.ext.api.ICredentialRepository;
 import io.revealbi.sdk.ext.api.oauth.IOAuthManager;
@@ -57,6 +58,8 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 			return OAuthProviderType.GOOGLE_ANALYTICS;
 		} else if (ds instanceof RVBigQueryDataSource) {
 			return OAuthProviderType.GOOGLE_BIG_QUERY;
+		} else if (ds instanceof RVGoogleDriveDataSource) {
+			return OAuthProviderType.GOOGLE_DRIVE;
 		} else {
 			return null;
 		}
@@ -70,6 +73,8 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 			return OAuthProviderType.GOOGLE_ANALYTICS;
 		} else if (provider.equals(ProviderKeys.bigQueryProviderKey)) {
 			return OAuthProviderType.GOOGLE_BIG_QUERY;
+		} else if (provider.equals(ProviderKeys.googleDriveProviderKey)) {
+			return OAuthProviderType.GOOGLE_DRIVE;
 		} else {
 			return null;
 		}
