@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import com.infragistics.reportplus.datalayer.api.ProviderKeys;
 import com.infragistics.reveal.sdk.api.IRVDataSourceCredential;
+import com.infragistics.reveal.sdk.api.IRVUserContext;
 import com.infragistics.reveal.sdk.api.model.RVBigQueryDataSource;
 import com.infragistics.reveal.sdk.api.model.RVDashboardDataSource;
 import com.infragistics.reveal.sdk.api.model.RVGoogleAnalyticsDataSource;
@@ -19,12 +20,13 @@ import io.revealbi.sdk.ext.api.oauth.OAuthProviderType;
  */
 public abstract class BaseCredentialRepository implements ICredentialRepository {
 	@Override
-	public IRVDataSourceCredential resolveCredentials(String userId, RVDashboardDataSource dataSource) {
+	public IRVDataSourceCredential resolveCredentials(IRVUserContext userContext, RVDashboardDataSource dataSource) {
+		String userId = userContext != null ? userContext.getUserId() : null;
 		OAuthProviderType oauthProvider = getOAuthProvider(dataSource);
 		if (oauthProvider != null) {
 			IOAuthManager oauth = OAuthManagerFactory.getInstance();
 			if (oauth != null) {
-				return oauth.resolveCredentials(userId, dataSource.getId(), oauthProvider);
+				return oauth.resolveCredentials(userContext.getUserId(), dataSource.getId(), oauthProvider);
 			}
 		}
 		return resolveRegularCredentials(userId, dataSource);

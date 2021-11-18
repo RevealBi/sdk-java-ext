@@ -5,6 +5,8 @@ import java.util.logging.Logger;
 
 import org.apache.commons.text.StringSubstitutor;
 
+import com.infragistics.reveal.sdk.api.IRVUserContext;
+
 import io.revealbi.sdk.ext.api.CredentialRepositoryFactory;
 import io.revealbi.sdk.ext.api.DashboardRepositoryFactory;
 import io.revealbi.sdk.ext.api.DataSourcesRepositoryFactory;
@@ -40,7 +42,7 @@ public class FileSystemExtFactory {
 		OAuthTokenRepositoryFactory.setInstance(new FileSystemOAuthTokenRepository(getOAuthTokensRootDir(rootDir, personal), personal));
 	}
 	
-	public static void installSampleDashboards(String userId, Class<?> clazz, String[] resources) {
+	public static void installSampleDashboards(IRVUserContext userContext, Class<?> clazz, String[] resources) {
 		IDashboardRepository repository = DashboardRepositoryFactory.getInstance();
 		if (!(repository instanceof FileSystemDashboardRepository)) {
 			log.warning("Skipping installation of sample dashboards, invalid repository");
@@ -54,7 +56,7 @@ public class FileSystemExtFactory {
 			log.warning("Skipping installation of sample dashboards, no resources specified");
 			return;
 		}
-		((FileSystemDashboardRepository)repository).installSampleDashboards(userId, clazz, resources);
+		((FileSystemDashboardRepository)repository).installSampleDashboards(userContext, clazz, resources);
 	}
 	
 	private static String getDashboardsRootDir(String rootDir) {

@@ -35,7 +35,7 @@ public class DashboardsResource extends BaseResource {
 	public DashboardInfo[] getDashboards() throws IOException {
 		checkDashboardsPermission(IAuthorizationProvider.DashboardsActionType.LIST);
 		
-		return getDashboardRepository().getUserDashboards(getUserId());
+		return getDashboardRepository().getUserDashboards(getUserContext());
 	}
 	
 	@DELETE	
@@ -52,7 +52,7 @@ public class DashboardsResource extends BaseResource {
 	public Map<String, Object> getDashboardJson(@PathParam("dashboardId") String dashboardId) throws IOException {
 		checkDashboardPermission(dashboardId, IAuthorizationProvider.DashboardActionType.READ);
 		
-		InputStream rdashStream = getDashboardRepository().getDashboard(getUserId(), dashboardId);
+		InputStream rdashStream = getDashboardRepository().getDashboard(getUserContext(), dashboardId);
 		if (rdashStream != null) {
 			RVDashboardDocument doc = RVSerializationUtilities.getDashboardDocument(rdashStream);
 			if (doc != null) {
@@ -68,7 +68,7 @@ public class DashboardsResource extends BaseResource {
 	public Response getDashboard(@PathParam("dashboardId") String dashboardId) throws IOException {
 		checkDashboardPermission(dashboardId, IAuthorizationProvider.DashboardActionType.READ);
 		
-		final InputStream rdashStream = getDashboardRepository().getDashboard(getUserId(), dashboardId);
+		final InputStream rdashStream = getDashboardRepository().getDashboard(getUserContext(), dashboardId);
 		if (rdashStream != null) {
 			StreamingOutput output = new StreamingOutput() {				
 				@Override

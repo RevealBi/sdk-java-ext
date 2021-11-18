@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.infragistics.reveal.sdk.api.IRVDataSourceCredential;
+import com.infragistics.reveal.sdk.api.IRVUserContext;
 import com.infragistics.reveal.sdk.api.model.RVDashboardDataSource;
 
 import io.revealbi.sdk.ext.base.BaseCredentialRepository;
@@ -54,8 +55,8 @@ public class FileSystemCredentialRepository extends BaseCredentialRepository {
 	}
 	
 	@Override
-	public IRVDataSourceCredential getCredentialsById(String userId, String accountId) {
-		return getRepository(userId).getCredentialsById(accountId);
+	public IRVDataSourceCredential getCredentialsById(IRVUserContext userContext, String accountId) {
+		return getRepository(userContext.getUserId()).getCredentialsById(accountId);
 	}
 	
 	@Override

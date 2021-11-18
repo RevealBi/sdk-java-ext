@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import com.infragistics.controls.IOUtils;
+import com.infragistics.reveal.sdk.api.IRVUserContext;
 
-import io.revealbi.sdk.ext.api.DashboardInfo;
 import io.revealbi.sdk.ext.base.BaseDashboardRepository;
 
 /**
@@ -40,11 +40,11 @@ public class FileSystemDashboardRepository extends BaseDashboardRepository {
 	}
 	
 	@Override
-	public InputStream getDashboard(String userId, String dashboardId) throws IOException {
-		String path = getDashboardPath(userId, dashboardId);
+	public InputStream getDashboard(IRVUserContext userContext, String dashboardId) throws IOException {
+		String path = getDashboardPath(userContext, dashboardId);
 		File file = new File(path);
 		if (!file.exists() || !file.canRead() || !file.isFile()) {
-			path = getDashboardPath(null, dashboardId);
+			path = getDashboardPath((String)null, dashboardId);
 		}
 		file = new File(path);
 		if (!file.exists() || !file.canRead() || !file.isFile()) {
@@ -54,8 +54,8 @@ public class FileSystemDashboardRepository extends BaseDashboardRepository {
 	}	
 
 	@Override
-	public void saveDashboard(String userId, String dashboardId, InputStream dashboardStream) throws IOException {
-		String path = getDashboardPath(userId, dashboardId);
+	public void saveDashboard(IRVUserContext userContext, String dashboardId, InputStream dashboardStream) throws IOException {
+		String path = getDashboardPath(userContext, dashboardId);
 		File file = new File(path);
 		if (!file.getParentFile().exists()) {
 			file.getParentFile().mkdirs();
@@ -63,10 +63,6 @@ public class FileSystemDashboardRepository extends BaseDashboardRepository {
 		try (FileOutputStream out = new FileOutputStream(file)) {
 			IOUtils.copy(dashboardStream, out);
 		}
-	}
-	
-	public DashboardInfo getDashboardInfo(String userId, String dashboardId) throws IOException {
-		return super.getDashboardInfo(userId, dashboardId);
 	}
 	
 	@Override
@@ -78,12 +74,18 @@ public class FileSystemDashboardRepository extends BaseDashboardRepository {
 		}
 	}
 	
+	private String getDashboardPath(IRVUserContext userContext, String dashboardId) {
+		String userId = userContext.getUserId();
+		return getDashboardPath(userId, dashboardId);
+	}
+	
 	private String getDashboardPath(String userId, String dashboardId) {
 		File userDir = (userId == null || !personal) ? new File(rootDir) : new File(rootDir, userId);
 		if (dashboardId == null) {
 			return userDir.getAbsolutePath();
 		}
 		return new File(userDir, dashboardId + ".rdash").getAbsolutePath();
+
 	}
 
 	@Override
@@ -103,8 +105,8 @@ public class FileSystemDashboardRepository extends BaseDashboardRepository {
 		return ids.toArray(new String[ids.size()]);
 	}
 	
-	public void installSampleDashboards(String userId, Class<?> clazz, String[] resources) {
-		String userPath = getDashboardPath(userId, null);
+	public void installSampleDashboards(IRVUserContext userContext, Class<?> clazz, String[] resources) {
+		String userPath = getDashboardPath(userContext, null);
 		File userDir = new File(userPath);
 		if (userDir.exists()) {
 			log.fine("Skipping installation of sample dashboards, folder already exists");
@@ -123,7 +125,8 @@ public class FileSystemDashboardRepository extends BaseDashboardRepository {
 			}
 			try {
 				String dashboardName = getDashboardNameFromResource(resource); 
-				saveDashboard(userId, dashboardName, in);
+				saveDashboard(userContext, dashboardName, in);
+				String userId = userContext.getUserId();
 				log.info("Installed sample dashboard: " + dashboardName + " for " + (userId == null ? "all users" : "user " + userId));
 				in.close();
 			} catch (IOException exc) {

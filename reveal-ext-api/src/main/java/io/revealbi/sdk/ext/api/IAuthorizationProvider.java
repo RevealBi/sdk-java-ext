@@ -26,7 +26,6 @@ public interface IAuthorizationProvider extends IRVDashboardAuthorizationProvide
 	 */
 	boolean hasDashboardsPermission(String userId, DashboardsActionType action);
 	
-	
 	/**
 	 * Returns true if the specified user has the specified permission to the given dashboard, this
 	 * method is used to check both when a dashboard is being created or updated.

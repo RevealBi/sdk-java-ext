@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import com.infragistics.reveal.sdk.api.IRVUserContext;
 import com.infragistics.reveal.sdk.api.model.RVDashboardSummary;
 import com.infragistics.reveal.sdk.util.RVSerializationUtilities;
 
@@ -22,8 +23,8 @@ public abstract class BaseDashboardRepository implements IDashboardRepository {
 	 * Returns the list of dashboards, you should extend this class and implement {@link #getUserDashboardIds(String)} and {@link #getDashboard(String, String)}.
 	 */
 	@Override
-	public DashboardInfo[] getUserDashboards(String userId) throws IOException {
-		String[] ids = getUserDashboardIds(userId);
+	public DashboardInfo[] getUserDashboards(IRVUserContext userContext) throws IOException {
+		String[] ids = getUserDashboardIds(userContext.getUserId());
 		
 		if (ids == null || ids.length == 0) {
 			return new DashboardInfo[0];
@@ -31,7 +32,7 @@ public abstract class BaseDashboardRepository implements IDashboardRepository {
 		
 		List<DashboardInfo> result = new ArrayList<DashboardInfo>();
 		for (String id : ids) {
-			DashboardInfo info = getDashboardInfo(userId, id);
+			DashboardInfo info = getDashboardInfo(userContext, id);
 			if (info != null) {
 				result.add(info);
 			}
@@ -45,8 +46,8 @@ public abstract class BaseDashboardRepository implements IDashboardRepository {
 		return result.toArray(new DashboardInfo[result.size()]);
 	}
 	
-	protected DashboardInfo getDashboardInfo(String userId, String dashboardId) throws IOException {
-		InputStream in = getDashboard(userId, dashboardId);
+	protected DashboardInfo getDashboardInfo(IRVUserContext userContext, String dashboardId) throws IOException {
+		InputStream in = getDashboard(userContext, dashboardId);
 		if (in == null) {
 			return null;
 		}

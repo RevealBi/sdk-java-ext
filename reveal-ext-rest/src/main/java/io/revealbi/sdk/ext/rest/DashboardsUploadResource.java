@@ -32,7 +32,7 @@ public class DashboardsUploadResource extends DashboardsResource {
 			}
 			String dashboardId = UUID.randomUUID().toString();
 			try (InputStream inputStream = file.getValueAs(InputStream.class)) {
-				getDashboardRepository().saveDashboard(getUserId(), dashboardId, inputStream);
+				getDashboardRepository().saveDashboard(getUserContext(), dashboardId, inputStream);
 			}
 		}
 		return Response.ok().build();

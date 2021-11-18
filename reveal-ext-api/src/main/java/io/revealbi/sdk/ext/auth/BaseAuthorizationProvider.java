@@ -1,6 +1,7 @@
 package io.revealbi.sdk.ext.auth;
 
 import com.infragistics.reveal.sdk.api.IRVDashboardAuthorizationProvider;
+import com.infragistics.reveal.sdk.api.IRVUserContext;
 
 import io.revealbi.sdk.ext.api.IAuthorizationProvider;
 
@@ -10,12 +11,12 @@ import io.revealbi.sdk.ext.api.IAuthorizationProvider;
  */
 public abstract class BaseAuthorizationProvider implements IAuthorizationProvider {
 	@Override
-	public boolean hasReadPermission(String userId, String dashboardId) {
-		return hasDashboardPermission(userId, dashboardId, DashboardActionType.READ);
+	public boolean hasReadPermission(IRVUserContext userContext, String dashboardId) {
+		return hasDashboardPermission(userContext.getUserId(), dashboardId, DashboardActionType.READ);
 	}
 
 	@Override
-	public boolean hasWritePermission(String userId, String dashboardId) {
-		return hasDashboardPermission(userId, dashboardId, DashboardActionType.WRITE);
+	public boolean hasWritePermission(IRVUserContext userContext, String dashboardId) {
+		return hasDashboardPermission(userContext.getUserId(), dashboardId, DashboardActionType.WRITE);
 	}
 }
