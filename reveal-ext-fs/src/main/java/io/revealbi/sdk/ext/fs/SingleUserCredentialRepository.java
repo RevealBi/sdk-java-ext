@@ -18,6 +18,7 @@ import javax.json.bind.JsonbConfig;
 import javax.json.bind.annotation.JsonbTransient;
 
 import com.infragistics.reveal.sdk.api.IRVDataSourceCredential;
+import com.infragistics.reveal.sdk.api.RVAmazonWebServicesCredentials;
 import com.infragistics.reveal.sdk.api.RVUsernamePasswordDataSourceCredential;
 import com.infragistics.reveal.sdk.api.model.RVDashboardDataSource;
 import com.infragistics.reveal.sdk.util.RVModelUtilities;
@@ -307,7 +308,13 @@ public class SingleUserCredentialRepository {
 		}
 		@JsonbTransient
 		public IRVDataSourceCredential getDataSourceCredential() {
-			return new RVUsernamePasswordDataSourceCredential(userName, password, domain);
+			String id = getId();
+			if (id != null && id.startsWith("rplus_aws:")) {
+				return new RVAmazonWebServicesCredentials(userName, password, domain);
+			} else {				
+				return new RVUsernamePasswordDataSourceCredential(userName, password, domain);
+			}
+			
 		}
 		public boolean isUsedByDataSource(String dataSourceId) {
 			return dataSources != null && dataSources.contains(dataSourceId);
