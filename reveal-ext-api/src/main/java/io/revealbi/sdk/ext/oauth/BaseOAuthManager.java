@@ -33,13 +33,40 @@ public class BaseOAuthManager implements IOAuthManager {
 			if (token == null) {
 				return null;
 			}
-			return new RVBearerTokenDataSourceCredential(token.getAccessToken(), userId);
+			
+			String oauthUserId = getOAuthUserId(token, provider, userId);
+			
+			return new RVBearerTokenDataSourceCredential(token.getAccessToken(), oauthUserId);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Failed to resolve OAuth token:" + e, e);
 			return null;
 		}
 	}
 	
+	private static String getOAuthUserId(OAuthToken token, OAuthProviderType provider, String defaultUserIdValue) {
+		String userId = null;
+		Map<String, Object> userInfo = token.getUserInfo();
+		if (userInfo != null) {
+			switch (provider) {
+			case GOOGLE_ANALYTICS:
+			case GOOGLE_BIG_QUERY:
+			case GOOGLE_DRIVE:
+				userId = GoogleOAuthClient.GoogleUserInfo.getUserId(userInfo);
+				break;
+			case ONE_DRIVE:
+				userId = new OneDriveOAuthClient.OneDriveUserInfo(userInfo).getUserId();
+				break;
+			case DROPBOX:
+				userId = DropboxOAuthClient.DropboxUserInfo.getUserId(userInfo); 
+				break;
+			case BOX:
+				//XXXTODO
+				break;
+			}
+		}
+		return userId != null ? userId : defaultUserIdValue;
+	}
+
 	@Override
 	public Map<String, Object> getUserInfo(String userId, OAuthProviderType provider, String tokenId) throws IOException {
 		OAuthToken token = OAuthTokenRepositoryFactory.getInstance().getToken(userId, tokenId, provider);
@@ -86,6 +113,17 @@ public class BaseOAuthManager implements IOAuthManager {
 		case GOOGLE_DRIVE:
 			registerProviderSettings(OAuthProviderSettings.createGoogleDriveSettings(clientId, clientSecret, redirectUri));
 			break;
+		case ONE_DRIVE:
+			registerProviderSettings(OAuthProviderSettings.createOneDriveSettings(clientId, clientSecret, redirectUri));
+			break;
+		case DROPBOX:
+			registerProviderSettings(OAuthProviderSettings.createDropboxSettings(clientId, clientSecret, redirectUri));
+			break;
+		case BOX:
+			registerProviderSettings(OAuthProviderSettings.createBoxSettings(clientId, clientSecret, redirectUri));
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -96,6 +134,7 @@ public class BaseOAuthManager implements IOAuthManager {
 	 * @return True if the token is expired.
 	 */
 	protected boolean isTokenExpired(OAuthToken token) {
+		if (token.getExpiration() == 0) return false;
 		return (token.getExpiration() + getExpirationGracePeriod()) < System.currentTimeMillis();
 	}
 	

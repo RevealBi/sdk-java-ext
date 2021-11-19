@@ -1,55 +1,25 @@
 package io.revealbi.sdk.ext.oauth;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
 
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderSettings;
-import io.revealbi.sdk.ext.api.oauth.OAuthToken;
 import io.revealbi.sdk.ext.api.oauth.OAuthUserInfo;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
 
 public class GoogleOAuthClient extends OAuthClient {
 
-	@Override
-	public String getTokenIdentifier(OAuthToken token) {
-		Map<String, Object> info = token.getUserInfo();
-		if (info != null) {
-			String userId = (String)info.get("sub");
-			if (userId != null) {
-				return userId;
-			}
-		}
-		return UUID.randomUUID().toString();
+	public GoogleOAuthClient() {
+		super("sub", new RequestParams("https://www.googleapis.com/oauth2/v3/userinfo", "GET"));
 	}
-
+	
 	@Override
-	public OAuthUserInfo getUserInfo(OAuthToken token) throws IOException {
-		String accessToken = token.getAccessToken();
-		if (accessToken == null) {
-			return null;
-		}
-		String url = "https://www.googleapis.com/oauth2/v3/userinfo";
-		OkHttpClient client = new OkHttpClient.Builder().build();
-		Request request = new Request.Builder().
-				url(url).
-				addHeader("Authorization", "Bearer " + accessToken).
-				get().
-				build();
-		okhttp3.Response response = client.newCall(request).execute();
-		if (response.isSuccessful()) {
-			String str = new String(response.body().bytes(), "UTF-8");
-			Jsonb json = JsonbBuilder.create();
-			return json.fromJson(str, GoogleUserInfo.class); 
-		} else {
-			return null;
-		}
+	public OAuthUserInfo createUserInfo(String str) {
+		Jsonb json = JsonbBuilder.create();
+		return json.fromJson(str, GoogleUserInfo.class); 
 	}
 	
 	@Override
@@ -80,6 +50,7 @@ public class GoogleOAuthClient extends OAuthClient {
 	}
 	
 	public static class GoogleUserInfo implements OAuthUserInfo {
+		private static final String SUB = "sub";
 		private String email;
 		private String name;
 		private String sub;
@@ -122,7 +93,7 @@ public class GoogleOAuthClient extends OAuthClient {
 		@Override
 		public Map<String, Object> toJson() {
 			Map<String, Object> json = new HashMap<String, Object>();
-			addToJson(json, "sub", sub);
+			addToJson(json, SUB, sub);
 			addToJson(json, "email", email);
 			addToJson(json, "name", name);
 			return json;
@@ -132,6 +103,10 @@ public class GoogleOAuthClient extends OAuthClient {
 			if (value != null) {
 				json.put(key, value);
 			}
+		}
+
+		public static String getUserId(Map<String, Object> userInfo) {
+			return (String) userInfo.get(SUB);
 		}
 	}
 }

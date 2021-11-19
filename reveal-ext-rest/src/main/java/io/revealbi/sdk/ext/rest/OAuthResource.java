@@ -255,7 +255,8 @@ public class OAuthResource extends BaseResource {
 	private static OAuthToken createOAuthToken(OAuthTokenResponse response, String redirectUri) {
 		String accessToken = response.getAccessToken();
 		String refreshToken = response.getRefreshToken();
-		long expiration = OAuthClient.getExpirationTimeForToken(response.getExpiresIn());
+		Integer expiresIn = response.getExpiresIn();
+		long expiration = expiresIn != null ? OAuthClient.getExpirationTimeForToken(expiresIn) : 0;
 		String idToken = response.getIdToken();
 		String scope = response.getScope();
 		

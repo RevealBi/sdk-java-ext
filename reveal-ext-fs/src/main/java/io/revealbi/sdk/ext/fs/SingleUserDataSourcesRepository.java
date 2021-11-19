@@ -56,6 +56,9 @@ public class SingleUserDataSourcesRepository {
 	
 	public synchronized void saveDataSource(String dataSourceId, Map<String, Object> json) throws IOException {
 		ensureDataSources();
+		if (getDataSourceById(dataSourceId) != null) {
+			deleteDataSource(dataSourceId);
+		}
 		dataSources.getDataSources().add(json);
 		saveDataSources();
 	}
@@ -74,6 +77,21 @@ public class SingleUserDataSourcesRepository {
 			}
 		}
 		saveDataSources();
+	}
+	
+	private Map<String, Object> getDataSourceById(String dataSourceId) {
+		List<Map<String, Object>> list = dataSources.getDataSources();
+		if (list != null) {
+			Iterator<Map<String, Object>> it = list.iterator();
+			while (it.hasNext()) {
+				Map<String, Object> ds = it.next();
+				String dsId = (String)ds.get("Id");
+				if (dsId != null && dsId.equals(dataSourceId)) {
+					return ds;
+				}
+			}
+		}
+		return null;
 	}
 	
 	private synchronized void ensureDataSources() {

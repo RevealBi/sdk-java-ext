@@ -5,7 +5,10 @@ import com.infragistics.reportplus.datalayer.api.ProviderKeys;
 public enum OAuthProviderType {
 	GOOGLE_ANALYTICS(ProviderKeys.googleAnalyticsProviderKey),
 	GOOGLE_BIG_QUERY(ProviderKeys.bigQueryProviderKey),
-	GOOGLE_DRIVE(ProviderKeys.googleDriveProviderKey);
+	GOOGLE_DRIVE(ProviderKeys.googleDriveProviderKey),
+	ONE_DRIVE(ProviderKeys.oneDriveProviderKey),
+	DROPBOX(ProviderKeys.dropboxProviderKey),
+	BOX(ProviderKeys.boxProviderKey);
 	
 	private String providerId;
 	private OAuthProviderType(String providerId) {

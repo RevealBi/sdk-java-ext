@@ -9,6 +9,12 @@ public class OAuthClientFactory {
 		case GOOGLE_BIG_QUERY:
 		case GOOGLE_DRIVE:
 			return new GoogleOAuthClient();
+		case ONE_DRIVE:
+			return new OneDriveOAuthClient();
+		case DROPBOX:
+			return new DropboxOAuthClient();
+		case BOX:
+			return null; //XXXTODO
 		default:
 			throw new RuntimeException("Client not found for " + provider);
 		}

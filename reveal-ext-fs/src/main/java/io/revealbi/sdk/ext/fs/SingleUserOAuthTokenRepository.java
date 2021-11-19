@@ -57,7 +57,7 @@ public class SingleUserOAuthTokenRepository {
 	public synchronized void setDataSourceToken(String dataSourceId, String tokenId, OAuthProviderType provider) throws IOException {
 		ensureTokens();
 		OAuthTokenInfo info = tokens.getTokens().get(getTokenInfoId(tokenId, provider));
-		if (info != null) {
+		if (info != null && !info.getDataSources().contains(dataSourceId)) {
 			info.getDataSources().add(dataSourceId);
 			saveTokens();
 		}

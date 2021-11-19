@@ -6,9 +6,12 @@ import com.infragistics.reportplus.datalayer.api.ProviderKeys;
 import com.infragistics.reveal.sdk.api.IRVDataSourceCredential;
 import com.infragistics.reveal.sdk.api.IRVUserContext;
 import com.infragistics.reveal.sdk.api.model.RVBigQueryDataSource;
+import com.infragistics.reveal.sdk.api.model.RVBoxDataSource;
 import com.infragistics.reveal.sdk.api.model.RVDashboardDataSource;
+import com.infragistics.reveal.sdk.api.model.RVDropboxDataSource;
 import com.infragistics.reveal.sdk.api.model.RVGoogleAnalyticsDataSource;
 import com.infragistics.reveal.sdk.api.model.RVGoogleDriveDataSource;
+import com.infragistics.reveal.sdk.api.model.RVOneDriveDataSource;
 
 import io.revealbi.sdk.ext.api.ICredentialRepository;
 import io.revealbi.sdk.ext.api.oauth.IOAuthManager;
@@ -60,6 +63,12 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 			return OAuthProviderType.GOOGLE_BIG_QUERY;
 		} else if (ds instanceof RVGoogleDriveDataSource) {
 			return OAuthProviderType.GOOGLE_DRIVE;
+		} else if (ds instanceof RVOneDriveDataSource) {
+			return OAuthProviderType.ONE_DRIVE;
+		} else if (ds instanceof RVDropboxDataSource) {
+			return OAuthProviderType.DROPBOX;
+		} else if (ds instanceof RVBoxDataSource) {
+			return OAuthProviderType.BOX;
 		} else {
 			return null;
 		}
@@ -75,6 +84,12 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 			return OAuthProviderType.GOOGLE_BIG_QUERY;
 		} else if (provider.equals(ProviderKeys.googleDriveProviderKey)) {
 			return OAuthProviderType.GOOGLE_DRIVE;
+		}  else if (provider.equals(ProviderKeys.oneDriveProviderKey)) {
+			return OAuthProviderType.ONE_DRIVE;
+		}  else if (provider.equals(ProviderKeys.dropboxProviderKey)) {
+			return OAuthProviderType.DROPBOX;
+		}  else if (provider.equals(ProviderKeys.boxProviderKey)) {
+			return OAuthProviderType.BOX;
 		} else {
 			return null;
 		}
