@@ -14,7 +14,7 @@ public class OAuthClientFactory {
 		case DROPBOX:
 			return new DropboxOAuthClient();
 		case BOX:
-			return null; //XXXTODO
+			return new BoxOAuthClient();
 		default:
 			throw new RuntimeException("Client not found for " + provider);
 		}

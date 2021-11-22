@@ -60,7 +60,7 @@ public class BaseOAuthManager implements IOAuthManager {
 				userId = DropboxOAuthClient.DropboxUserInfo.getUserId(userInfo); 
 				break;
 			case BOX:
-				//XXXTODO
+				userId = BoxOAuthClient.BoxUserInfo.getUserId(userInfo);
 				break;
 			}
 		}
