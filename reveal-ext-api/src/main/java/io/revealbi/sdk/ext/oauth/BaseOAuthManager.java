@@ -80,7 +80,12 @@ public class BaseOAuthManager implements IOAuthManager {
 	@Override
 	public void saveToken(String userId, OAuthProviderType provider, OAuthToken token) throws IOException {
 		OAuthTokenRepositoryFactory.getInstance().saveToken(userId, provider, token);
-	}	
+	}
+	
+	@Override
+	public OAuthToken getToken(String userId, OAuthProviderType provider, String tokenId) throws IOException {
+		return OAuthTokenRepositoryFactory.getInstance().getToken(userId, tokenId, provider);
+	}
 	
 	@Override
 	public void deleteToken(String userId, String tokenId, OAuthProviderType provider) throws IOException {

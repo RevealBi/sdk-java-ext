@@ -1,10 +1,8 @@
 package io.revealbi.sdk.ext.rest;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HashMap;
@@ -23,6 +21,11 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+
+import com.infragistics.controls.NativeRequestUtility;
+import com.infragistics.reportplus.dashboardmodel.DataSource;
+import com.infragistics.reportplus.datalayer.DashboardModelUtils;
+import com.infragistics.reportplus.datalayer.engine.util.EngineConstants;
 
 import io.revealbi.sdk.ext.api.DataSourcesRepositoryFactory;
 import io.revealbi.sdk.ext.api.oauth.IOAuthManager;
@@ -105,13 +108,26 @@ public class OAuthResource extends BaseResource {
 		return Response.ok(userInfo).build();
 	}
 	
-	@Path("/{providerType}/{tokenId}/{dataSourceId}")
+	@Path("/{providerType}/{tokenId}/datasource")
+	@GET
+	public Response getTokenDataSource(@PathParam("providerType") OAuthProviderType providerType, @PathParam("tokenId") String tokenId) throws IOException {
+		OAuthToken token = OAuthManagerFactory.getInstance().getToken(getUserId(), providerType, tokenId);
+		if (token == null) {
+			return Response.status(Status.NOT_FOUND).build();
+		}
+		OAuthClient client = getOAuthClient(providerType);
+		OAuthUserInfo userInfo = client.createUserInfo(JsonbBuilder.create().toJson(token.getUserInfo()));
+		return Response.ok(dataSource_fromOAuthToken(providerType, token, userInfo)).build();
+	}
+
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@Path("/{providerType}/{tokenId}/registerDashboardDataSource")
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
-	public Response saveDataSource(@PathParam("providerType") OAuthProviderType providerType, @PathParam("tokenId") String tokenId, @PathParam("dataSourceId") String dataSourceId, Map<String, Object> dataSource) throws IOException {
-		DataSourcesRepositoryFactory.getInstance().saveDataSource(getUserId(), dataSourceId, dataSource);
+	public Response registerDashboardDataSource(@PathParam("providerType") OAuthProviderType providerType, @PathParam("tokenId") String tokenId, Map<String, Object> dataSourceJson) throws IOException {
+		String dataSourceId = generateDataSourceIdentifier(new DataSource(new HashMap(dataSourceJson)));
 		getOAuthManager().setDataSourceToken(getUserId(), dataSourceId, tokenId, providerType);
-		return Response.ok().build();
+		return Response.ok(dataSourceId).build();
 	}
 
 	protected Response createErrorResponse(String msg) {
@@ -142,11 +158,38 @@ public class OAuthResource extends BaseResource {
 			String tokenId = client.getTokenIdentifier(token);
 			token.setId(tokenId);
 			OAuthManagerFactory.getInstance().saveToken(getUserId(), settings.getProviderType(), token);
+			
+			DataSource ds = dataSource_fromOAuthToken(settings.getProviderType(), token, userInfo); // this can later evolve to ProviderModel.dataSourceFromToken(...)
+			DataSourcesRepositoryFactory.getInstance().saveDataSource(getUserId(), ds.getId(), ds.toJson());			
 			if (dataSourceId != null) {
+				// The dashboard-datasource's id passed as a parameter needs to be associated to this credentials/token: 
 				OAuthManagerFactory.getInstance().setDataSourceToken(getUserId(), dataSourceId, tokenId, settings.getProviderType());
 			}
+			
+			if (dataSourceId == null || !ds.getId().equals(dataSourceId)) {
+				// Also associate the user-datasource created for the token, with that token.
+				OAuthManagerFactory.getInstance().setDataSourceToken(getUserId(), ds.getId(), tokenId, settings.getProviderType());
+			}
+			
 			return Response.temporaryRedirect(getAuthenticationSuccessUri(settings.getRedirectUri(), finalUrl, tokenId)).build();
 		}
+	}
+	
+	private static DataSource dataSource_fromOAuthToken(OAuthProviderType providerType, OAuthToken oauthToken, OAuthUserInfo oauthUserInfo) {
+		// TODO this method should be moved to some place in the Translatable world (maybe DataSourceUtility)?
+		//      The logic is borrowed from DataSourceHelper.CreateDataSourceForProvider
+		
+		DataSource ds = new DataSource();
+		ds.getProperties().setObjectValue(EngineConstants.accountIdPropertyName, oauthUserInfo.getUserId());
+		ds.setProvider(providerType.getProviderId());
+		ds.setSubtitle(oauthUserInfo.getEmail());
+		ds.setDescription(oauthUserInfo.getDisplayName());
+		ds.setId(generateDataSourceIdentifier(ds));
+		return ds;
+	}
+	
+	private static String generateDataSourceIdentifier(DataSource ds) {
+		return DashboardModelUtils.getUniqueDataSourceIdentifier(ds);
 	}
 	
 	protected URI getAuthenticationSuccessUri(String redirectUri, String finalUrl, String tokenId) {
@@ -225,31 +268,11 @@ public class OAuthResource extends BaseResource {
 	}
 	
 	private static String encodeState(Map<String, String> state) {
-		StringBuilder stateBuilder = new StringBuilder();
-		for (String key : state.keySet()) {
-			if (stateBuilder.length() > 0) {
-				stateBuilder.append("&");
-			}
-			stateBuilder.append(key).append("=").append(state.get(key));
-		}
-		return OAuthClient.urlEncode(stateBuilder.toString());
-	}	
+		return NativeRequestUtility.utility().base64Encode(JsonbBuilder.create().toJson(state));
+	}
 	
 	private static Map<String, String> decodeState(String stateStr) {
-		try {
-			stateStr = URLDecoder.decode(stateStr, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-		Map<String, String> state = new HashMap<String, String>();
-		for (String part : stateStr.split("&")) {
-			String[] pair = part.split("=");
-			if (pair.length != 2) {
-				continue;
-			}
-			state.put(pair[0], pair[1]);
-		}
-		return state;
+		return JsonbBuilder.create().fromJson(NativeRequestUtility.utility().base64Decode(stateStr), Map.class);
 	}
 	
 	private static OAuthToken createOAuthToken(OAuthTokenResponse response, String redirectUri) {
