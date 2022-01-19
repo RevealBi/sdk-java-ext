@@ -18,6 +18,7 @@ public interface IOAuthManager {
 
 	Map<String, Object> getUserInfo(String userId, OAuthProviderType provider, String tokenId) throws IOException;
 	void saveToken(String userId, OAuthProviderType provider, OAuthToken token) throws IOException;
+	OAuthToken getToken(String userId, OAuthProviderType providerType, String tokenId) throws IOException;
 	void setDataSourceToken(String userId, String dataSourceId, String tokenId, OAuthProviderType provider) throws IOException;
 	void dataSourceDeleted(String userId, String dataSourceId, OAuthProviderType provider) throws IOException;
 	void deleteToken(String userId, String tokenId, OAuthProviderType provider) throws IOException;
