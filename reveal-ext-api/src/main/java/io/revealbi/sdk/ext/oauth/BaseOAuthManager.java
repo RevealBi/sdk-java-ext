@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 import com.infragistics.reveal.sdk.api.RVBearerTokenDataSourceCredential;
 
 import io.revealbi.sdk.ext.api.oauth.IOAuthManager;
+import io.revealbi.sdk.ext.api.oauth.IOAuthStateProvider;
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderSettings;
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderType;
 import io.revealbi.sdk.ext.api.oauth.OAuthToken;
@@ -20,6 +21,11 @@ public class BaseOAuthManager implements IOAuthManager {
 	
 	private Map<OAuthProviderType, OAuthProviderSettings> map = Collections.synchronizedMap(new HashMap<OAuthProviderType, OAuthProviderSettings>());
 	private Map<String, TokenLock> locks = new HashMap<String, BaseOAuthManager.TokenLock>();
+	private IOAuthStateProvider stateProvider;
+	
+	public BaseOAuthManager() {
+		setOAuthStateProvider(new BaseOAuthStateProvider());
+	}
 	
 	@Override
 	public OAuthProviderSettings getProviderSettings(OAuthProviderType providerType) {
@@ -105,6 +111,20 @@ public class BaseOAuthManager implements IOAuthManager {
 	public void registerProviderSettings(OAuthProviderSettings settings) {
 		map.put(settings.getProviderType(), settings);
 	}
+	
+	@Override
+	public void setOAuthStateProvider(IOAuthStateProvider provider) {
+		if (provider == null) {
+			throw new NullPointerException("OAuthStateProvider is required");
+		}
+		this.stateProvider = provider;
+	}
+
+	@Override
+	public IOAuthStateProvider getOAuthStateProvider() {
+		return stateProvider;
+	}
+
 	
 	@Override
 	public void registerProvider(OAuthProviderType provider, String clientId, String clientSecret, String redirectUri) {

@@ -32,4 +32,7 @@ public interface IOAuthManager {
 	 * {server} and {app} must be replaced with the values for your application and deployment location.
 	 */
 	void registerProvider(OAuthProviderType provider, String clientId, String clientSecret, String redirectUri);
+	
+	void setOAuthStateProvider(IOAuthStateProvider provider);
+	IOAuthStateProvider getOAuthStateProvider();
 }
