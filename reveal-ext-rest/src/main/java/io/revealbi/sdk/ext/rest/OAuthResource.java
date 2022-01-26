@@ -32,6 +32,7 @@ import io.revealbi.sdk.ext.api.oauth.IOAuthManager;
 import io.revealbi.sdk.ext.api.oauth.OAuthManagerFactory;
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderSettings;
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderType;
+import io.revealbi.sdk.ext.api.oauth.OAuthStateValidationResult;
 import io.revealbi.sdk.ext.api.oauth.OAuthToken;
 import io.revealbi.sdk.ext.api.oauth.OAuthUserInfo;
 import io.revealbi.sdk.ext.oauth.OAuthClient;
@@ -60,7 +61,7 @@ public class OAuthResource extends BaseResource {
 		if (settings == null || settings.getAuthEndpoint() == null) {
 			return Response.status(Status.NOT_FOUND).build();
 		}
-		Map<String, String> state = getAuthState();
+		Map<String, String> state = getOAuthManager().getOAuthStateProvider().getStateForAuthenticationRequest(getUserContext());
 		if (dataSourceId != null) {
 			state.put("dataSourceId", dataSourceId);
 		}
@@ -79,11 +80,21 @@ public class OAuthResource extends BaseResource {
 		}		
 		Map<String, String> state = decodeState(stateStr);
 		String dataSourceId = state.get("dataSourceId");
-		if (!isValidUserState(state)) {
-			return createErrorResponse("Invalid redirect, state validation failed");			
+		
+		OAuthStateValidationResult stateResult = getOAuthManager().getOAuthStateProvider().validateAuthenticationState(getUserContext(), state);
+		if (!stateResult.isValidationSuccessful()) {
+			String errorMessage = stateResult.getErrorMessage();
+			if (errorMessage == null || errorMessage.trim().length() == 0) {
+				errorMessage = "Invalid redirect, state validation failed";
+			}
+			return createErrorResponse(errorMessage);			
 		} else {
 			String finalUrl = state.get("finalUrl");
-			return completeAuthentication(settings, dataSourceId, code, finalUrl);
+			String authUserId = stateResult.getUserId();
+			if (authUserId == null) {
+				authUserId = getUserId();
+			}
+			return completeAuthentication(authUserId, settings, dataSourceId, code, finalUrl);
 		}
 	}
 
@@ -111,7 +122,7 @@ public class OAuthResource extends BaseResource {
 	@Path("/{providerType}/{tokenId}/datasource")
 	@GET
 	public Response getTokenDataSource(@PathParam("providerType") OAuthProviderType providerType, @PathParam("tokenId") String tokenId) throws IOException {
-		OAuthToken token = OAuthManagerFactory.getInstance().getToken(getUserId(), providerType, tokenId);
+		OAuthToken token = getOAuthManager().getToken(getUserId(), providerType, tokenId);
 		if (token == null) {
 			return Response.status(Status.NOT_FOUND).build();
 		}
@@ -140,7 +151,8 @@ public class OAuthResource extends BaseResource {
 		return OAuthClientFactory.getClient(provider);
 	}
 	
-	protected Response completeAuthentication(OAuthProviderSettings settings, String dataSourceId, String code, String finalUrl) throws IOException {
+	@SuppressWarnings("unchecked")
+	protected Response completeAuthentication(String userId, OAuthProviderSettings settings, String dataSourceId, String code, String finalUrl) throws IOException {
 		OAuthClient client = getOAuthClient(settings.getProviderType());
 		OAuthTokenResponse response = client.completeAuthentication(settings, code);
 		if (response.getError() != null) {
@@ -157,18 +169,18 @@ public class OAuthResource extends BaseResource {
 			}
 			String tokenId = client.getTokenIdentifier(token);
 			token.setId(tokenId);
-			OAuthManagerFactory.getInstance().saveToken(getUserId(), settings.getProviderType(), token);
+			getOAuthManager().saveToken(userId, settings.getProviderType(), token);
 			
 			DataSource ds = dataSource_fromOAuthToken(settings.getProviderType(), token, userInfo); // this can later evolve to ProviderModel.dataSourceFromToken(...)
-			DataSourcesRepositoryFactory.getInstance().saveDataSource(getUserId(), ds.getId(), ds.toJson());			
+			DataSourcesRepositoryFactory.getInstance().saveDataSource(userId, ds.getId(), ds.toJson());			
 			if (dataSourceId != null) {
 				// The dashboard-datasource's id passed as a parameter needs to be associated to this credentials/token: 
-				OAuthManagerFactory.getInstance().setDataSourceToken(getUserId(), dataSourceId, tokenId, settings.getProviderType());
+				getOAuthManager().setDataSourceToken(userId, dataSourceId, tokenId, settings.getProviderType());
 			}
 			
 			if (dataSourceId == null || !ds.getId().equals(dataSourceId)) {
 				// Also associate the user-datasource created for the token, with that token.
-				OAuthManagerFactory.getInstance().setDataSourceToken(getUserId(), ds.getId(), tokenId, settings.getProviderType());
+				getOAuthManager().setDataSourceToken(userId, ds.getId(), tokenId, settings.getProviderType());
 			}
 			
 			return Response.temporaryRedirect(getAuthenticationSuccessUri(settings.getRedirectUri(), finalUrl, tokenId)).build();
@@ -206,56 +218,7 @@ public class OAuthResource extends BaseResource {
 			throw new RuntimeException(exc);
 		}
 	}
-		
-	protected Map<String, String> getAuthState() {
-		Map<String, String> state = new HashMap<String, String>();
-		state.put("user", getHashedUserId());
-		return state;
-	}
-	
-	protected boolean isValidUserState(Map<String, String> state) {
-		String user = state.get("user");
-		return user != null && user.equals(getHashedUserId());
-	}
-
-	protected String getUserIdForState() {
-		String userId = getUserId();
-		if (userId == null) {
-			return "guest";
-		}
-		return userId;
-	}
-	
-	protected String getHashedUserId() {
-		return sha256(getUserIdForState());
-	}
-	
-	protected static final String sha256(String s) {
-		try {
-			MessageDigest digest = MessageDigest.getInstance("SHA-256");
-			byte[] encodedHash = digest.digest(s.getBytes(StandardCharsets.UTF_8));
-			return hexa(encodedHash);
-		} catch (Exception exc) {
-			if (exc instanceof RuntimeException) {
-				throw (RuntimeException)exc;
-			} else {
-				throw new RuntimeException(exc);
-			}
-		}
-	}
-	
-	protected static String hexa(byte[] b) {
-	    StringBuilder hexString = new StringBuilder(2 * b.length);
-	    for (int i = 0; i < b.length; i++) {
-	        String hex = Integer.toHexString(0xff & b[i]);
-	        if(hex.length() == 1) {
-	            hexString.append('0');
-	        }
-	        hexString.append(hex);
-	    }
-	    return hexString.toString();
-	}
-	
+			
 	private URI getAuthURI(OAuthProviderSettings settings, Map<String, String> state) {
 		OAuthClient client = getOAuthClient(settings.getProviderType());
 		String encodedState;
@@ -271,6 +234,7 @@ public class OAuthResource extends BaseResource {
 		return NativeRequestUtility.utility().base64Encode(JsonbBuilder.create().toJson(state));
 	}
 	
+	@SuppressWarnings("unchecked")
 	private static Map<String, String> decodeState(String stateStr) {
 		return JsonbBuilder.create().fromJson(NativeRequestUtility.utility().base64Decode(stateStr), Map.class);
 	}

@@ -19,7 +19,7 @@ public abstract class BaseResource {
 	}
 	
 	protected IRVUserContext getUserContext() {
-		return UserContextProvider.getUserContext(requestContext);
+		return RestUserContextProviderFactory.getInstance().getUserContext(requestContext);
 	}
 	
 	protected void checkDashboardPermission(String dashboardId, IAuthorizationProvider.DashboardActionType action) {
