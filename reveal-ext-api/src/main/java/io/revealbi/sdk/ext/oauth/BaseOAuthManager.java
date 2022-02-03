@@ -57,6 +57,7 @@ public class BaseOAuthManager implements IOAuthManager {
 			case GOOGLE_ANALYTICS:
 			case GOOGLE_BIG_QUERY:
 			case GOOGLE_DRIVE:
+			case GOOGLE_SEARCH_CONSOLE:
 				userId = GoogleOAuthClient.GoogleUserInfo.getUserId(userInfo);
 				break;
 			case ONE_DRIVE:
@@ -146,6 +147,9 @@ public class BaseOAuthManager implements IOAuthManager {
 			break;
 		case BOX:
 			registerProviderSettings(OAuthProviderSettings.createBoxSettings(clientId, clientSecret, redirectUri));
+			break;
+		case GOOGLE_SEARCH_CONSOLE:
+			registerProviderSettings(OAuthProviderSettings.createGoogleSearchConsoleSettings(clientId, clientSecret, redirectUri));
 			break;
 		default:
 			break;

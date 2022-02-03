@@ -11,6 +11,7 @@ import com.infragistics.reveal.sdk.api.model.RVDashboardDataSource;
 import com.infragistics.reveal.sdk.api.model.RVDropboxDataSource;
 import com.infragistics.reveal.sdk.api.model.RVGoogleAnalyticsDataSource;
 import com.infragistics.reveal.sdk.api.model.RVGoogleDriveDataSource;
+import com.infragistics.reveal.sdk.api.model.RVGoogleSearchConsoleDataSource;
 import com.infragistics.reveal.sdk.api.model.RVOneDriveDataSource;
 
 import io.revealbi.sdk.ext.api.ICredentialRepository;
@@ -69,6 +70,8 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 			return OAuthProviderType.DROPBOX;
 		} else if (ds instanceof RVBoxDataSource) {
 			return OAuthProviderType.BOX;
+		} else if (ds instanceof RVGoogleSearchConsoleDataSource) {
+			return OAuthProviderType.GOOGLE_SEARCH_CONSOLE;
 		} else {
 			return null;
 		}
@@ -90,6 +93,8 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 			return OAuthProviderType.DROPBOX;
 		}  else if (provider.equals(ProviderKeys.boxProviderKey)) {
 			return OAuthProviderType.BOX;
+		} else if (provider.equals(ProviderKeys.googleSearchProviderKey)) {
+			return OAuthProviderType.GOOGLE_SEARCH_CONSOLE;
 		} else {
 			return null;
 		}

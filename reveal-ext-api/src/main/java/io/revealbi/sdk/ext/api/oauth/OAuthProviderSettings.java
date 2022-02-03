@@ -37,7 +37,11 @@ public class OAuthProviderSettings {
 	public static OAuthProviderSettings createBoxSettings(String clientId, String clientSecret, String redirectUri) {
 		return new OAuthProviderSettings(OAuthProviderType.BOX, "https://account.box.com/api/oauth2/authorize", "https://api.box.com/oauth2/token", clientId, clientSecret, null, redirectUri);
 	}
-
+	
+	public static OAuthProviderSettings createGoogleSearchConsoleSettings(String clientId, String clientSecret, String redirectUri) {
+		return new OAuthProviderSettings(OAuthProviderType.GOOGLE_SEARCH_CONSOLE, GOOGLE_OAUTH_AUTH_ENDPOINT, GOOGLE_OAUTH_TOKEN_ENDPOINT, clientId, clientSecret, "https://www.googleapis.com/auth/userinfo.email%20https://www.googleapis.com/auth/webmasters.readonly%20https://www.googleapis.com/auth/userinfo.profile", redirectUri);
+	}
+	
 	public OAuthProviderSettings(OAuthProviderType providerType, String authEndpoint, String tokenEndpoint, String clientId, String clientSecret, String scope, String redirectUri) {
 		this.providerType = providerType;
 		this.authEndpoint = authEndpoint;

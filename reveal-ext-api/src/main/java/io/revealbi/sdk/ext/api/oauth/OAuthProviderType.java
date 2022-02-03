@@ -8,7 +8,8 @@ public enum OAuthProviderType {
 	GOOGLE_DRIVE(ProviderKeys.googleDriveProviderKey),
 	ONE_DRIVE(ProviderKeys.oneDriveProviderKey),
 	DROPBOX(ProviderKeys.dropboxProviderKey),
-	BOX(ProviderKeys.boxProviderKey);
+	BOX(ProviderKeys.boxProviderKey),
+	GOOGLE_SEARCH_CONSOLE(ProviderKeys.googleSearchProviderKey);
 	
 	private String providerId;
 	private OAuthProviderType(String providerId) {
