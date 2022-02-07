@@ -68,7 +68,8 @@ public class OAuthResource extends BaseResource {
 		if (finalUrl != null) {
 			state.put("finalUrl", finalUrl);
 		}
-		return Response.temporaryRedirect(getAuthURI(settings, state)).build();
+		URI location = getAuthURI(settings, state);
+		return Response.ok(location.toString()).build();
 	}
 	
 	@Path("/{providerType}/callback")
