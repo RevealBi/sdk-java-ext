@@ -6,11 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.infragistics.reveal.sdk.api.IRVDataSourceCredential;
-import com.infragistics.reveal.sdk.api.IRVUserContext;
-import com.infragistics.reveal.sdk.api.model.RVDashboardDataSource;
-
 import io.revealbi.sdk.ext.base.BaseCredentialRepository;
+import io.revealbi.sdk.ext.base.Credentials;
 
 /**
  * Credentials repository implementation that loads credentials from a JSON document.
@@ -38,7 +35,7 @@ import io.revealbi.sdk.ext.base.BaseCredentialRepository;
  */
 public class FileSystemCredentialRepository extends BaseCredentialRepository {
 	private static final String SINGLE_USER_KEY = "credentials";
-	
+
 	private String rootDir;
 	private boolean personal;
 	private Map<String, SingleUserCredentialRepository> repositories;
@@ -47,16 +44,6 @@ public class FileSystemCredentialRepository extends BaseCredentialRepository {
 		this.rootDir = rootDir;
 		this.personal = personal;
 		this.repositories = new HashMap<String, SingleUserCredentialRepository>();
-	}
-	
-	@Override
-	protected IRVDataSourceCredential resolveRegularCredentials(String userId, RVDashboardDataSource ds) {		
-		return getRepository(userId).resolveCredentials(ds);
-	}
-	
-	@Override
-	public IRVDataSourceCredential getCredentialsById(IRVUserContext userContext, String accountId) {
-		return getRepository(userContext.getUserId()).getCredentialsById(accountId);
 	}
 	
 	@Override
@@ -92,5 +79,12 @@ public class FileSystemCredentialRepository extends BaseCredentialRepository {
 			repositories.put(key, repo);
 		}
 		return repo;
+	}
+
+	@Override
+	protected Map<String, Object> getCredentialsById(String userId, String id) throws IOException {
+		Credentials creds = getRepository(userId).getCredentialsWithId(id);
+		return creds == null ? null : creds.toJson();
+		
 	}
 }
