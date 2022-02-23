@@ -9,6 +9,16 @@ public class GenericCredentials {
 	private String domain;
 	private String userName;
 	private String password;
+	private Map<String, Object> oauthDefinition;
+	
+	public static String getAccountId(Map<String, Object> json) {
+		return (String) json.get("accountId");
+	}
+
+	public static void setAccountId(Map<String, Object> json, String v) {
+		json.put("accountId", v);
+	}
+
 	public String getAccountId() {
 		return accountId;
 	}
@@ -54,5 +64,13 @@ public class GenericCredentials {
 			return;
 		}
 		json.put(key, value);
+	}
+
+	public Map<String, Object> getOauthDefinition() {
+		return oauthDefinition;
+	}
+
+	public void setOauthDefinition(Map<String, Object> oauthDefinition) {
+		this.oauthDefinition = oauthDefinition;
 	}
 }

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -30,10 +31,13 @@ public class CredentialsResource extends BaseResource {
 		
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
-	public Response saveDataSource(GenericCredentials credentials) throws IOException {
-		String assignedId = CredentialRepositoryFactory.getInstance().saveCredentials(getUserId(), credentials.getAccountId(), credentials.toJson());
+	public Response saveDataSource(HashMap<String, Object> credentials) throws IOException {
+		
+		ensureAccountId(credentials); 
+		
+		String assignedId = CredentialRepositoryFactory.getInstance().saveCredentials(getUserId(), GenericCredentials.getAccountId(credentials), credentials);
 		if (assignedId == null) {
-			assignedId = credentials.getAccountId();
+			assignedId = GenericCredentials.getAccountId(credentials);
 		}
 		Map<String, Object> result = new HashMap<String, Object>();
 		if (assignedId != null) {
@@ -42,6 +46,13 @@ public class CredentialsResource extends BaseResource {
 		return Response.ok(result).build();
 	}
 	
+	private static void ensureAccountId(HashMap<String, Object> credentials) {
+		String accountId = GenericCredentials.getAccountId(credentials);
+		if (accountId == null || accountId.trim().length() == 0) {
+			GenericCredentials.setAccountId(credentials, UUID.randomUUID().toString());
+		}
+	}
+
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response deleteDataSource(GenericCredentials credentials) throws IOException {
@@ -106,6 +117,7 @@ public class CredentialsResource extends BaseResource {
 		GenericCredentials.putValue(newJson, "name", json.get("accountName"));
 		GenericCredentials.putValue(newJson, "domain", json.get("domain"));
 		GenericCredentials.putValue(newJson, "userName", json.get("userName"));
+		GenericCredentials.putValue(newJson, "oauthDefinition", json.get("oauthDefinition"));
 		return newJson;
 	}
 	
