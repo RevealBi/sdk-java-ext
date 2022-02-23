@@ -204,7 +204,7 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 					
 					if (result instanceof CloudError) {
 						CloudError cloudError = (CloudError)result;
-						log.log(Level.SEVERE, "Unable to perform refresh. It failed unexpectedly, or timed out. " + cloudError.getErrorMessage(), cloudError);
+						log.log(Level.INFO, "Refresh token failed. " + cloudError.getErrorMessage(), cloudError);
 						return null;
 					}
 					tokenData = ((CPJSONObject)result).getJSONObject();
