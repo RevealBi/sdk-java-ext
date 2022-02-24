@@ -13,8 +13,8 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -66,8 +66,11 @@ public class CredentialsResource extends BaseResource {
 	
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	@Path("{dataSourceId}")
-	public Response getCredentialsForDataSource(@PathParam("dataSourceId") String dataSourceId) throws IOException {
+	@Path("query")
+	public Response getCredentialsForDataSource(@QueryParam("dataSourceId") String dataSourceId) throws IOException {
+		// This is done with a QueryParam, and not a PathParam, because datasourceIds sometimes look like URLs, so it needs proper escaping
+		// but a '/' escaped in a pathParam is not something that Tomcat is happy with (error: Invalid URI: noSlash), and we want to avoid 
+		// the usual workarounds for that (System properties).
 		Map<String, Object> json = CredentialRepositoryFactory.getInstance().getDataSourceCredentials(getUserId(), dataSourceId);
 		if (json == null) {
 			return Response.status(Status.NOT_FOUND).build();
