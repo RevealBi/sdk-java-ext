@@ -15,12 +15,13 @@ import io.revealbi.sdk.ext.api.oauth.OAuthProviderSettings;
 import io.revealbi.sdk.ext.api.oauth.OAuthProviderType;
 import io.revealbi.sdk.ext.api.oauth.OAuthToken;
 import io.revealbi.sdk.ext.api.oauth.OAuthTokenRepositoryFactory;
+import io.revealbi.sdk.ext.oauth.TokenLock.Lock;
 
 public class BaseOAuthManager implements IOAuthManager {
 	private static Logger log = Logger.getLogger(BaseOAuthManager.class.getName());
 	
 	private Map<OAuthProviderType, OAuthProviderSettings> map = Collections.synchronizedMap(new HashMap<OAuthProviderType, OAuthProviderSettings>());
-	private Map<String, TokenLock> locks = new HashMap<String, BaseOAuthManager.TokenLock>();
+	private TokenLock tokenLock = new TokenLock();
 	private IOAuthStateProvider stateProvider;
 	
 	public BaseOAuthManager() {
@@ -57,6 +58,7 @@ public class BaseOAuthManager implements IOAuthManager {
 			case GOOGLE_ANALYTICS:
 			case GOOGLE_BIG_QUERY:
 			case GOOGLE_DRIVE:
+			case GOOGLE_SEARCH_CONSOLE:
 				userId = GoogleOAuthClient.GoogleUserInfo.getUserId(userInfo);
 				break;
 			case ONE_DRIVE:
@@ -147,6 +149,9 @@ public class BaseOAuthManager implements IOAuthManager {
 		case BOX:
 			registerProviderSettings(OAuthProviderSettings.createBoxSettings(clientId, clientSecret, redirectUri));
 			break;
+		case GOOGLE_SEARCH_CONSOLE:
+			registerProviderSettings(OAuthProviderSettings.createGoogleSearchConsoleSettings(clientId, clientSecret, redirectUri));
+			break;
 		default:
 			break;
 		}
@@ -212,7 +217,7 @@ public class BaseOAuthManager implements IOAuthManager {
 
 	private OAuthToken getRefreshedToken(String userId, String dataSourceId, OAuthProviderType provider) throws IOException {
 		String cacheKey = getCacheKey(userId, dataSourceId, provider);
-		TokenLock lock = getLockObject(cacheKey);
+		Lock lock = tokenLock.getLockObject(cacheKey);
 		try {
 			synchronized (lock) {
 				OAuthToken token = getDataSourceToken(userId, dataSourceId, provider);
@@ -225,29 +230,7 @@ public class BaseOAuthManager implements IOAuthManager {
 				return token;
 			}
 		} finally {
-			releaseLock(cacheKey, lock);
-		}
-	}
-	
-	private TokenLock getLockObject(String cacheKey) {
-		TokenLock lock;
-		synchronized (locks) {
-			lock = locks.get(cacheKey);
-			if (lock == null) {
-				lock = new TokenLock();
-				locks.put(cacheKey, lock);
-			}
-			lock.references++;
-		}
-		return lock;
-	}
-	
-	private void releaseLock(String cacheKey, TokenLock lock) {
-		synchronized (locks) {
-			lock.references--;
-			if (lock.references == 0) {
-				locks.remove(cacheKey);
-			}
+			tokenLock.releaseLock(cacheKey, lock);
 		}
 	}
 	
@@ -255,7 +238,4 @@ public class BaseOAuthManager implements IOAuthManager {
 		return userId + ":" + dataSourceId + ":" + provider;
 	}
 	
-	private static class TokenLock {
-		int references;		
-	}
 }

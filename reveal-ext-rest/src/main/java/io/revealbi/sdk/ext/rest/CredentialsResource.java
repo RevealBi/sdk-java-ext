@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -12,8 +13,8 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -30,10 +31,13 @@ public class CredentialsResource extends BaseResource {
 		
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
-	public Response saveDataSource(GenericCredentials credentials) throws IOException {
-		String assignedId = CredentialRepositoryFactory.getInstance().saveCredentials(getUserId(), credentials.getAccountId(), credentials.toJson());
+	public Response saveDataSource(HashMap<String, Object> credentials) throws IOException {
+		
+		ensureAccountId(credentials); 
+		
+		String assignedId = CredentialRepositoryFactory.getInstance().saveCredentials(getUserId(), GenericCredentials.getAccountId(credentials), credentials);
 		if (assignedId == null) {
-			assignedId = credentials.getAccountId();
+			assignedId = GenericCredentials.getAccountId(credentials);
 		}
 		Map<String, Object> result = new HashMap<String, Object>();
 		if (assignedId != null) {
@@ -42,6 +46,13 @@ public class CredentialsResource extends BaseResource {
 		return Response.ok(result).build();
 	}
 	
+	private static void ensureAccountId(HashMap<String, Object> credentials) {
+		String accountId = GenericCredentials.getAccountId(credentials);
+		if (accountId == null || accountId.trim().length() == 0) {
+			GenericCredentials.setAccountId(credentials, UUID.randomUUID().toString());
+		}
+	}
+
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response deleteDataSource(GenericCredentials credentials) throws IOException {
@@ -55,8 +66,11 @@ public class CredentialsResource extends BaseResource {
 	
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	@Path("{dataSourceId}")
-	public Response getCredentialsForDataSource(@PathParam("dataSourceId") String dataSourceId) throws IOException {
+	@Path("query")
+	public Response getCredentialsForDataSource(@QueryParam("dataSourceId") String dataSourceId) throws IOException {
+		// This is done with a QueryParam, and not a PathParam, because datasourceIds sometimes look like URLs, so it needs proper escaping
+		// but a '/' escaped in a pathParam is not something that Tomcat is happy with (error: Invalid URI: noSlash), and we want to avoid 
+		// the usual workarounds for that (System properties).
 		Map<String, Object> json = CredentialRepositoryFactory.getInstance().getDataSourceCredentials(getUserId(), dataSourceId);
 		if (json == null) {
 			return Response.status(Status.NOT_FOUND).build();
@@ -106,6 +120,7 @@ public class CredentialsResource extends BaseResource {
 		GenericCredentials.putValue(newJson, "name", json.get("accountName"));
 		GenericCredentials.putValue(newJson, "domain", json.get("domain"));
 		GenericCredentials.putValue(newJson, "userName", json.get("userName"));
+		GenericCredentials.putValue(newJson, "oauthDefinition", json.get("oauthDefinition"));
 		return newJson;
 	}
 	

@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,11 +16,7 @@ import javax.json.bind.JsonbBuilder;
 import javax.json.bind.JsonbConfig;
 import javax.json.bind.annotation.JsonbTransient;
 
-import com.infragistics.reveal.sdk.api.IRVDataSourceCredential;
-import com.infragistics.reveal.sdk.api.RVAmazonWebServicesCredentials;
-import com.infragistics.reveal.sdk.api.RVUsernamePasswordDataSourceCredential;
-import com.infragistics.reveal.sdk.api.model.RVDashboardDataSource;
-import com.infragistics.reveal.sdk.util.RVModelUtilities;
+import io.revealbi.sdk.ext.base.Credentials;
 
 /**
  * Credentials repository that loads/stores credentials from/to a JSON document.
@@ -55,34 +50,10 @@ public class SingleUserCredentialRepository {
 		this.filePath = filePath;
 	}
 	
-	protected IRVDataSourceCredential resolveCredentials(RVDashboardDataSource ds) {		
-		IRVDataSourceCredential result = getDataSourceCredential(RVModelUtilities.getUniqueIdentifier(ds));
-		if (result == null) {
-			result = getDataSourceCredential(ds.getId());
-		}
-		return result;
-	}
-	
-	public IRVDataSourceCredential getCredentialsById(String accountId) {
-		try {
-			Credentials cred = getCredentialsWithId(accountId);
-			return cred == null ? null : cred.getDataSourceCredential();
-		} catch (IOException e) {
-			return null;
-		}		
-	}
-	
 	public String saveCredentials(String id, Map<String, Object> json) throws IOException {
 		Credentials cred = new Credentials(json);
-		if (cred.userName == null) {
-			throw new IOException("Expected userName");
-		}
-		if (cred.id == null || cred.id.trim().length() == 0) {
-			cred.id = UUID.randomUUID().toString();
-		}
-		
 		saveCredentials(cred);
-		return cred.id;
+		return cred.getId();
 	}
 
 	public synchronized Map<String, Object> getDataSourceCredentials(String dataSourceId) throws IOException {
@@ -132,12 +103,6 @@ public class SingleUserCredentialRepository {
 		}
 	}
 	
-	private synchronized IRVDataSourceCredential getDataSourceCredential(String dsId) {
-		ensureCredentials();
-		Credentials cred = getCredentialsForDataSource(dsId);
-		return cred == null ? null : cred.getDataSourceCredential();
-	}
-	
 	private Credentials getCredentialsForDataSource(String dsId) {
 		for (Credentials c : credentials.values()) {
 			if (c.isUsedByDataSource(dsId)) {
@@ -147,7 +112,7 @@ public class SingleUserCredentialRepository {
 		return null;
 	}
 	
-	private synchronized Credentials getCredentialsWithId(String credentialsId) throws IOException {
+	public synchronized Credentials getCredentialsWithId(String credentialsId) throws IOException {
 		ensureCredentials();
 		return credentials.get(credentialsId);
 	}
@@ -176,11 +141,11 @@ public class SingleUserCredentialRepository {
 	
 	private synchronized void saveCredentials(Credentials cred) {
 		ensureCredentials();
-		Credentials prev = credentials.get(cred.id);
+		Credentials prev = credentials.get(cred.getId());
 		if (prev != null) {
-			cred.dataSources = prev.dataSources;
+			cred.setDataSources(prev.getDataSources());
 		}
-		credentials.put(cred.id, cred);
+		credentials.put(cred.getId(), cred);
 		saveCredentials();
 	}
 	
@@ -231,110 +196,6 @@ public class SingleUserCredentialRepository {
 			}
 			
 			return map;
-		}
-	}
-	
-	public static class Credentials {
-		private String id;
-		private String userName;
-		private String domain;
-		private String password;		
-		private String accountName;
-		private List<String> dataSources;
-		
-		public Credentials() {			
-		}
-		
-		public Credentials(Map<String, Object> json) {
-			this.id = (String)json.get("accountId");
-			this.domain = (String)json.get("domain");
-			this.userName = (String)json.get("userName");
-			this.password = (String)json.get("password");
-			this.accountName = (String)json.get("accountName");
-		}
-		
-		public Map<String, Object> toJson() {
-			Map<String, Object> json = new HashMap<String, Object>();
-			putValue(json, "accountId", id);
-			putValue(json, "accountName", accountName);
-			putValue(json, "domain", domain);
-			putValue(json, "userName", userName);
-			//password is not included
-			return json;
-		}
-		
-		private static void putValue(Map<String, Object> json, String key, Object value) {
-			if (value == null) {
-				return;
-			}
-			json.put(key, value);
-		}
-		
-		public String getId() {
-			return id;
-		}
-		public void setId(String id) {
-			this.id = id;
-		}
-		public String getUserName() {
-			return userName;
-		}
-		public void setUserName(String userName) {
-			this.userName = userName;
-		}
-		public String getDomain() {
-			return domain;
-		}
-		public void setDomain(String domain) {
-			this.domain = domain;
-		}
-		public String getPassword() {
-			return password;
-		}
-		public void setPassword(String password) {
-			this.password = password;
-		}		
-		public List<String> getDataSources() {
-			return dataSources;
-		}
-		public void setDataSources(List<String> dataSources) {
-			this.dataSources = dataSources;
-		}		
-		public String getAccountName() {
-			return accountName;
-		}
-		public void setAccountName(String accountName) {
-			this.accountName = accountName;
-		}
-		@JsonbTransient
-		public IRVDataSourceCredential getDataSourceCredential() {
-			String id = getId();
-			if (id != null && id.startsWith("rplus_aws:")) {
-				return new RVAmazonWebServicesCredentials(userName, password, domain);
-			} else {				
-				return new RVUsernamePasswordDataSourceCredential(userName, password, domain);
-			}
-			
-		}
-		public boolean isUsedByDataSource(String dataSourceId) {
-			return dataSources != null && dataSources.contains(dataSourceId);
-		}
-		public void addDataSource(String dsId) {
-			if (dsId == null) {
-				return;
-			}
-			if (dataSources == null) {
-				dataSources = new ArrayList<String>();				
-			} else if (dataSources.contains(dsId)) {
-				return;
-			}
-			dataSources.add(dsId);
-		}
-		public void removeDataSource(String dataSourceId) {
-			if (dataSources == null || dataSourceId == null) {
-				return;
-			}
-			dataSources.remove(dataSourceId);
 		}
 	}
 }

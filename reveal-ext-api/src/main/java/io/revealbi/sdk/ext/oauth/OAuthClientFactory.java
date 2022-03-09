@@ -8,6 +8,7 @@ public class OAuthClientFactory {
 		case GOOGLE_ANALYTICS:
 		case GOOGLE_BIG_QUERY:
 		case GOOGLE_DRIVE:
+		case GOOGLE_SEARCH_CONSOLE:
 			return new GoogleOAuthClient();
 		case ONE_DRIVE:
 			return new OneDriveOAuthClient();
