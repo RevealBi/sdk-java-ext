@@ -85,19 +85,26 @@ public class SingleUserCredentialRepository {
 	public synchronized void setDataSourceCredentials(String dataSourceId, String credentialsId) throws IOException {
 		ensureCredentials();
 		boolean modified = false;
+		
+		Credentials cred;
+		// A given datasourceId can only be associated with one credential.
+		// However, previous versions of this implementation did not take care of that appropriately. 
+		// So, the following code considers the possibility of having multiple credentials for the datasource
+		// to correct that situation. 
+		// Implementations that do not need to 'migrate' data like this can just expect one credential.
+		while ((cred = getCredentialsForDataSource(dataSourceId)) != null) {
+			cred.removeDataSource(dataSourceId);
+			modified = true;
+		}
+		
 		if (credentialsId != null) {
-			Credentials cred = credentials.get(credentialsId);
+			cred = credentials.get(credentialsId);
 			if (cred != null) {
 				cred.addDataSource(dataSourceId);
 				modified = true;
 			}
-		} else {
-			Credentials cred = getCredentialsForDataSource(dataSourceId);
-			if (cred != null) {
-				cred.removeDataSource(dataSourceId);
-				modified = true;
-			}
-		}
+		} 
+
 		if (modified) {
 			saveCredentials();
 		}
