@@ -13,10 +13,12 @@ public class OAuthStateValidationResult {
 		return new OAuthStateValidationResult(true, null, null);		
 	}
 	
+	@Deprecated(forRemoval = true)
 	public static OAuthStateValidationResult createSuccessfulValidationResult(String userId) {
 		return new OAuthStateValidationResult(true, null, userId);
 	}
 	
+	@Deprecated(forRemoval = true)
 	private OAuthStateValidationResult(boolean ok, String errorMessage, String userId) {
 		this.validationOk = ok;
 		this.errorMessage = ok ? null : errorMessage;
@@ -31,6 +33,7 @@ public class OAuthStateValidationResult {
 		return errorMessage;
 	}
 	
+	@Deprecated(forRemoval = true)
 	public String getUserId() {
 		return userId;
 	}

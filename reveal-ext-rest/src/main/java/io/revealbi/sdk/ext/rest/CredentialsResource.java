@@ -35,7 +35,7 @@ public class CredentialsResource extends BaseResource {
 		
 		ensureAccountId(credentials); 
 		
-		String assignedId = CredentialRepositoryFactory.getInstance().saveCredentials(getUserId(), GenericCredentials.getAccountId(credentials), credentials);
+		String assignedId = CredentialRepositoryFactory.getInstance().saveCredentials(getUserContext(), GenericCredentials.getAccountId(credentials), credentials);
 		if (assignedId == null) {
 			assignedId = GenericCredentials.getAccountId(credentials);
 		}
@@ -58,7 +58,7 @@ public class CredentialsResource extends BaseResource {
 	public Response deleteDataSource(GenericCredentials credentials) throws IOException {
 		String id = credentials == null ? null : credentials.getAccountId();
 		if (id != null) {
-			boolean found = CredentialRepositoryFactory.getInstance().deleteCredentials(getUserId(), id);
+			boolean found = CredentialRepositoryFactory.getInstance().deleteCredentials(getUserContext(), id);
 			return found ? Response.ok().build() : Response.status(Status.NOT_FOUND).build();
 		}
 		return Response.status(Status.NOT_FOUND).build();
@@ -71,7 +71,7 @@ public class CredentialsResource extends BaseResource {
 		// This is done with a QueryParam, and not a PathParam, because datasourceIds sometimes look like URLs, so it needs proper escaping
 		// but a '/' escaped in a pathParam is not something that Tomcat is happy with (error: Invalid URI: noSlash), and we want to avoid 
 		// the usual workarounds for that (System properties).
-		Map<String, Object> json = CredentialRepositoryFactory.getInstance().getDataSourceCredentials(getUserId(), dataSourceId);
+		Map<String, Object> json = CredentialRepositoryFactory.getInstance().getDataSourceCredentials(getUserContext(), dataSourceId);
 		if (json == null) {
 			return Response.status(Status.NOT_FOUND).build();
 		} else {
@@ -83,7 +83,7 @@ public class CredentialsResource extends BaseResource {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Path("accounts")
 	public Response getAccounts() throws IOException {
-		List<Map<String, Object>> jsonList = CredentialRepositoryFactory.getInstance().getCredentials(getUserId());
+		List<Map<String, Object>> jsonList = CredentialRepositoryFactory.getInstance().getCredentials(getUserContext());
 		return Response.ok(convertForClient(jsonList)).build();
 	}
 
@@ -94,7 +94,7 @@ public class CredentialsResource extends BaseResource {
 		String resourceId = (String)json.get("resourceId");
 		String accountId = (String)json.get("accountId");
 		if (resourceId != null && accountId != null) {
-			CredentialRepositoryFactory.getInstance().setDataSourceCredentials(getUserId(), resourceId, accountId);
+			CredentialRepositoryFactory.getInstance().setDataSourceCredentials(getUserContext(), resourceId, accountId);
 		}
 		return Response.ok().build();
 	}
@@ -105,7 +105,7 @@ public class CredentialsResource extends BaseResource {
 	public Response deleteAssignment(Map<String, Object> json) throws IOException {
 		String resourceId = (String)json.get("resourceId");
 		if (resourceId != null) {
-			CredentialRepositoryFactory.getInstance().setDataSourceCredentials(getUserId(), resourceId, null);
+			CredentialRepositoryFactory.getInstance().setDataSourceCredentials(getUserContext(), resourceId, null);
 		}
 		return Response.ok().build();
 	}

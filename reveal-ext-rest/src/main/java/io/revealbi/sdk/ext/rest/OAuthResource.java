@@ -17,14 +17,17 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriInfo;
 
 import com.infragistics.controls.NativeRequestUtility;
 import com.infragistics.reportplus.dashboardmodel.DataSource;
 import com.infragistics.reportplus.datalayer.DashboardModelUtils;
 import com.infragistics.reportplus.datalayer.engine.util.EngineConstants;
+import com.infragistics.reveal.sdk.api.IRVUserContext;
 
 import io.revealbi.sdk.ext.api.DataSourcesRepositoryFactory;
 import io.revealbi.sdk.ext.api.oauth.IOAuthManager;
@@ -53,7 +56,7 @@ public class OAuthResource extends BaseResource {
 	@Path("/{providerType}/auth/{dataSourceId}")
 	@GET
 	@Produces("text/plain")
-	public Response doAuth(@PathParam("providerType") OAuthProviderType providerType, @PathParam("dataSourceId") String dataSourceId, @QueryParam("finalUrl") String finalUrl) throws URISyntaxException {
+	public Response getOAuthenticateUrl(@PathParam("providerType") OAuthProviderType providerType, @PathParam("dataSourceId") String dataSourceId, @QueryParam("finalUrl") String finalUrl) throws URISyntaxException {
 		if (dataSourceId != null && dataSourceId.equals("_new")) {
 			dataSourceId = null;
 		}
@@ -71,35 +74,80 @@ public class OAuthResource extends BaseResource {
 		URI location = getAuthURI(settings, state);
 		return Response.ok(location.toString()).build();
 	}
-	
+
 	@Path("/{providerType}/callback")
 	@GET
-	public Response doCallback(@PathParam("providerType") OAuthProviderType providerType, @QueryParam("code") String code, @QueryParam("state") String stateStr) throws IOException {
+	public Response processOAuthRedirectUri(@QueryParam("state") String stateStr, @Context UriInfo uriInfo) throws IOException {
+		Map<String, String> state = decodeState(stateStr);
+		String finalUrl = state.get("finalUrl");
+		finalUrl += "?" + uriInfo.getRequestUri().getRawQuery();
+		try {
+			return Response.temporaryRedirect(new URI(finalUrl)).build();
+		} catch (URISyntaxException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	@Path("/{providerType}/complete")
+	@GET
+	@SuppressWarnings("unchecked")
+	public Response complete(@PathParam("providerType") OAuthProviderType providerType, @QueryParam("code") String code, @QueryParam("state") String stateStr) throws IOException {
 		OAuthProviderSettings settings = providerType == null ? null : getOAuthManager().getProviderSettings(providerType);
 		if (settings == null || settings.getTokenEndpoint() == null) {
 			return Response.status(Status.NOT_FOUND).build();
 		}		
-		Map<String, String> state = decodeState(stateStr);
-		String dataSourceId = state.get("dataSourceId");
+		IRVUserContext userContext = getUserContext();
 		
-		OAuthStateValidationResult stateResult = getOAuthManager().getOAuthStateProvider().validateAuthenticationState(getUserContext(), state);
+		Map<String, String> state = decodeState(stateStr);
+
+		OAuthStateValidationResult stateResult = getOAuthManager().getOAuthStateProvider().validateAuthenticationState(userContext, state);
 		if (!stateResult.isValidationSuccessful()) {
 			String errorMessage = stateResult.getErrorMessage();
 			if (errorMessage == null || errorMessage.trim().length() == 0) {
 				errorMessage = "Invalid redirect, state validation failed";
 			}
-			return createErrorResponse(errorMessage);			
-		} else {
-			String finalUrl = state.get("finalUrl");
-			String authUserId = stateResult.getUserId();
-			if (authUserId == null) {
-				authUserId = getUserId();
-			}
-			return completeAuthentication(authUserId, settings, dataSourceId, code, finalUrl);
+			OAuthTokenResponse r = new OAuthTokenResponse();
+			r.setError(errorMessage);
+			return Response.ok(r).build();
+		} 
+		
+		String dataSourceId = state.get("dataSourceId");
+			
+		OAuthClient client = getOAuthClient(settings.getProviderType());
+		OAuthTokenResponse response = client.completeAuthentication(settings, code);
+		if (response.getError() != null) {
+			Jsonb json = JsonbBuilder.create();
+			return Response.ok(json.toJson(response)).build();
 		}
+		
+		OAuthToken token = createOAuthToken(response, settings.getRedirectUri());
+		if (token.getRefreshToken() == null) {
+			log.warning("No refreshToken obtained for provider: " + settings.getProviderType());
+		}
+		OAuthUserInfo userInfo = client.getUserInfo(token);
+		if (userInfo != null) {
+			token.setUserInfo(userInfo.toJson());
+		}
+		String tokenId = client.getTokenIdentifier(token);
+		token.setId(tokenId);
+		getOAuthManager().saveToken(userContext, settings.getProviderType(), token);
+		
+		DataSource ds = dataSource_fromOAuthToken(settings.getProviderType(), token, userInfo); // this can later evolve to ProviderModel.dataSourceFromToken(...)
+		DataSourcesRepositoryFactory.getInstance().saveDataSource(userContext, ds.getId(), ds.toJson());			
+		if (dataSourceId != null) {
+			// The dashboard-datasource's id passed as a parameter needs to be associated to this credentials/token: 
+			getOAuthManager().setDataSourceToken(userContext, dataSourceId, tokenId, settings.getProviderType());
+		}
+		
+		if (dataSourceId == null || !ds.getId().equals(dataSourceId)) {
+			// Also associate the user-datasource created for the token, with that token.
+			getOAuthManager().setDataSourceToken(userContext, ds.getId(), tokenId, settings.getProviderType());
+		}
+		
+		return Response.ok(dataSource_fromOAuthToken(providerType, token, userInfo)).build();
 	}
-
-	@Path("/authenticated/{tokenId}")
+	
+	@Path("/authenticated/do-not-redirect")
 	@GET
 	public Response doAuthenticated(@PathParam("tokenId") String tokenId) throws IOException {
 		StringBuilder builder = new StringBuilder();
@@ -110,82 +158,18 @@ public class OAuthResource extends BaseResource {
 		return Response.ok(builder.toString(), MediaType.TEXT_HTML_TYPE).build();
 	}
 	
-	@Path("/{providerType}/{tokenId}")
-	@GET
-	public Response getUserInfo(@PathParam("providerType") OAuthProviderType providerType, @PathParam("tokenId") String tokenId) throws IOException {
-		Map<String, Object> userInfo = getOAuthManager().getUserInfo(getUserId(), providerType, tokenId);
-		if (userInfo == null) {
-			return Response.status(Status.NOT_FOUND).build();
-		}
-		return Response.ok(userInfo).build();
-	}
-	
-	@Path("/{providerType}/{tokenId}/datasource")
-	@GET
-	public Response getTokenDataSource(@PathParam("providerType") OAuthProviderType providerType, @PathParam("tokenId") String tokenId) throws IOException {
-		OAuthToken token = getOAuthManager().getToken(getUserId(), providerType, tokenId);
-		if (token == null) {
-			return Response.status(Status.NOT_FOUND).build();
-		}
-		OAuthClient client = getOAuthClient(providerType);
-		OAuthUserInfo userInfo = client.createUserInfo(JsonbBuilder.create().toJson(token.getUserInfo()));
-		return Response.ok(dataSource_fromOAuthToken(providerType, token, userInfo)).build();
-	}
-
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Path("/{providerType}/{tokenId}/registerDashboardDataSource")
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response registerDashboardDataSource(@PathParam("providerType") OAuthProviderType providerType, @PathParam("tokenId") String tokenId, Map<String, Object> dataSourceJson) throws IOException {
 		String dataSourceId = generateDataSourceIdentifier(new DataSource(new HashMap(dataSourceJson)));
-		getOAuthManager().setDataSourceToken(getUserId(), dataSourceId, tokenId, providerType);
+		getOAuthManager().setDataSourceToken(getUserContext(), dataSourceId, tokenId, providerType);
 		return Response.ok(dataSourceId).build();
 	}
 
-	protected Response createErrorResponse(String msg) {
-		OAuthTokenResponse r = new OAuthTokenResponse();
-		r.setError(msg);
-		return Response.ok(r).build();
-	}
-	
-	protected OAuthClient getOAuthClient(OAuthProviderType provider) {
+	private static OAuthClient getOAuthClient(OAuthProviderType provider) {
 		return OAuthClientFactory.getClient(provider);
-	}
-	
-	@SuppressWarnings("unchecked")
-	protected Response completeAuthentication(String userId, OAuthProviderSettings settings, String dataSourceId, String code, String finalUrl) throws IOException {
-		OAuthClient client = getOAuthClient(settings.getProviderType());
-		OAuthTokenResponse response = client.completeAuthentication(settings, code);
-		if (response.getError() != null) {
-			Jsonb json = JsonbBuilder.create();
-			return Response.ok(json.toJson(response)).build();
-		} else {
-			OAuthToken token = createOAuthToken(response, settings.getRedirectUri());
-			if (token.getRefreshToken() == null) {
-				log.warning("No refreshToken obtained for provider: " + settings.getProviderType());
-			}
-			OAuthUserInfo userInfo = client.getUserInfo(token);
-			if (userInfo != null) {
-				token.setUserInfo(userInfo.toJson());
-			}
-			String tokenId = client.getTokenIdentifier(token);
-			token.setId(tokenId);
-			getOAuthManager().saveToken(userId, settings.getProviderType(), token);
-			
-			DataSource ds = dataSource_fromOAuthToken(settings.getProviderType(), token, userInfo); // this can later evolve to ProviderModel.dataSourceFromToken(...)
-			DataSourcesRepositoryFactory.getInstance().saveDataSource(userId, ds.getId(), ds.toJson());			
-			if (dataSourceId != null) {
-				// The dashboard-datasource's id passed as a parameter needs to be associated to this credentials/token: 
-				getOAuthManager().setDataSourceToken(userId, dataSourceId, tokenId, settings.getProviderType());
-			}
-			
-			if (dataSourceId == null || !ds.getId().equals(dataSourceId)) {
-				// Also associate the user-datasource created for the token, with that token.
-				getOAuthManager().setDataSourceToken(userId, ds.getId(), tokenId, settings.getProviderType());
-			}
-			
-			return Response.temporaryRedirect(getAuthenticationSuccessUri(settings.getRedirectUri(), finalUrl, tokenId)).build();
-		}
 	}
 	
 	private static DataSource dataSource_fromOAuthToken(OAuthProviderType providerType, OAuthToken oauthToken, OAuthUserInfo oauthUserInfo) {
@@ -204,22 +188,7 @@ public class OAuthResource extends BaseResource {
 	private static String generateDataSourceIdentifier(DataSource ds) {
 		return DashboardModelUtils.getUniqueDataSourceIdentifier(ds);
 	}
-	
-	protected URI getAuthenticationSuccessUri(String redirectUri, String finalUrl, String tokenId) {
-		try {
-			String baseUrl;
-			if (finalUrl != null) {
-				baseUrl = finalUrl;
-			} else {
-				baseUrl = redirectUri.replaceFirst("/callback", "/authenticated");
-			}
-			String url = baseUrl + (baseUrl.endsWith("/") ? "" : "/") + tokenId;
-			return new URI(url);
-		} catch (URISyntaxException exc) {
-			throw new RuntimeException(exc);
-		}
-	}
-			
+
 	private URI getAuthURI(OAuthProviderSettings settings, Map<String, String> state) {
 		OAuthClient client = getOAuthClient(settings.getProviderType());
 		String encodedState;

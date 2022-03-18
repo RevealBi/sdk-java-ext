@@ -43,7 +43,7 @@ public class DashboardsResource extends BaseResource {
 	public void deleteDashboard(@PathParam("dashboardId") String dashboardId) throws IOException {
 		checkDashboardPermission(dashboardId, IAuthorizationProvider.DashboardActionType.DELETE);
 		
-		getDashboardRepository().deleteDashboard(getUserId(), dashboardId);
+		getDashboardRepository().deleteDashboard(getUserContext(), dashboardId);
 	}
 	
 	@GET

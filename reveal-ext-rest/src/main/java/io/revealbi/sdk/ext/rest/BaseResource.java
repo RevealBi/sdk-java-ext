@@ -12,25 +12,21 @@ import io.revealbi.sdk.ext.api.IAuthorizationProvider;
 
 public abstract class BaseResource {
 	@Context
-	protected ContainerRequestContext requestContext;
+	protected ContainerRequestContext requestContext; //TODO this is not working with RESTEasy
 
-	protected String getUserId() {
-		return getUserContext().getUserId();
-	}
-	
 	protected IRVUserContext getUserContext() {
 		return RestUserContextProviderFactory.getInstance().getUserContext(requestContext);
 	}
 	
 	protected void checkDashboardPermission(String dashboardId, IAuthorizationProvider.DashboardActionType action) {
-		boolean ok = AuthorizationProviderFactory.getInstance().hasDashboardPermission(getUserId(), dashboardId, action);
+		boolean ok = AuthorizationProviderFactory.getInstance().hasDashboardPermission(getUserContext(), dashboardId, action);
 		if (!ok) {
 			throw new WebApplicationException(Status.FORBIDDEN);
 		}
 	}
 	
 	protected void checkDashboardsPermission(IAuthorizationProvider.DashboardsActionType action) {
-		boolean ok = AuthorizationProviderFactory.getInstance().hasDashboardsPermission(getUserId(), action);
+		boolean ok = AuthorizationProviderFactory.getInstance().hasDashboardsPermission(getUserContext(), action);
 		if (!ok) {
 			throw new WebApplicationException(Status.FORBIDDEN);
 		}

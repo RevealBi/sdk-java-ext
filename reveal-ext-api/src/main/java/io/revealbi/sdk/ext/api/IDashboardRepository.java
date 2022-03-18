@@ -19,9 +19,24 @@ public interface IDashboardRepository extends IRVDashboardProvider {
 	
 	/**
 	 * Deletes the specified dashboard from storage.
+	 * @param userContext The context if of the user performing the operation.
+	 * @param dashboardId The if of the dashboard being deleted.
+	 * @throws IOException If there was an error deleting the dashboard from storage.
+	 */
+	default void deleteDashboard(IRVUserContext userContext, String dashboardId) throws IOException {
+		deleteDashboard(userContext != null ? userContext.getUserId() : null, dashboardId);
+	}
+	
+	/**
+	 * Deletes the specified dashboard from storage.
+	 * <br><br>{@code @deprecated} Use {@link #deleteDashboard(IRVUserContext, String)}
 	 * @param userId The if of the user performing the operation.
 	 * @param dashboardId The if of the dashboard being deleted.
 	 * @throws IOException If there was an error deleting the dashboard from storage.
 	 */
-	void deleteDashboard(String userId, String dashboardId) throws IOException;
+	@Deprecated(forRemoval = true)
+	default void deleteDashboard(String userId, String dashboardId) throws IOException {
+		throw new RuntimeException("Please implement deleteDashboard(IRVUserContext userContext, String dashboardId)");
+	}
+
 }
