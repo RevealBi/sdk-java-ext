@@ -12,11 +12,11 @@ import io.revealbi.sdk.ext.api.IAuthorizationProvider;
 public abstract class BaseAuthorizationProvider implements IAuthorizationProvider {
 	@Override
 	public boolean hasReadPermission(IRVUserContext userContext, String dashboardId) {
-		return hasDashboardPermission(userContext.getUserId(), dashboardId, DashboardActionType.READ);
+		return hasDashboardPermission(userContext, dashboardId, DashboardActionType.READ);
 	}
 
 	@Override
 	public boolean hasWritePermission(IRVUserContext userContext, String dashboardId) {
-		return hasDashboardPermission(userContext.getUserId(), dashboardId, DashboardActionType.WRITE);
+		return hasDashboardPermission(userContext, dashboardId, DashboardActionType.WRITE);
 	}
 }

@@ -3,6 +3,7 @@ package io.revealbi.sdk.ext.api.oauth;
 import java.io.IOException;
 import java.util.Map;
 
+import com.infragistics.reveal.sdk.api.IRVUserContext;
 import com.infragistics.reveal.sdk.api.RVBearerTokenDataSourceCredential;
 
 /**
@@ -14,14 +15,14 @@ import com.infragistics.reveal.sdk.api.RVBearerTokenDataSourceCredential;
  */
 public interface IOAuthManager {
 	OAuthProviderSettings getProviderSettings(OAuthProviderType providerType);
-	RVBearerTokenDataSourceCredential resolveCredentials(String userId, String dataSourceId, OAuthProviderType provider);
+	RVBearerTokenDataSourceCredential resolveCredentials(IRVUserContext userContext, String dataSourceId, OAuthProviderType provider);
 
-	Map<String, Object> getUserInfo(String userId, OAuthProviderType provider, String tokenId) throws IOException;
-	void saveToken(String userId, OAuthProviderType provider, OAuthToken token) throws IOException;
-	OAuthToken getToken(String userId, OAuthProviderType providerType, String tokenId) throws IOException;
-	void setDataSourceToken(String userId, String dataSourceId, String tokenId, OAuthProviderType provider) throws IOException;
-	void dataSourceDeleted(String userId, String dataSourceId, OAuthProviderType provider) throws IOException;
-	void deleteToken(String userId, String tokenId, OAuthProviderType provider) throws IOException;
+	Map<String, Object> getUserInfo(IRVUserContext userContext, OAuthProviderType provider, String tokenId) throws IOException;
+	void saveToken(IRVUserContext userContext, OAuthProviderType provider, OAuthToken token) throws IOException;
+	OAuthToken getToken(IRVUserContext userContext, OAuthProviderType providerType, String tokenId) throws IOException;
+	void setDataSourceToken(IRVUserContext userContext, String dataSourceId, String tokenId, OAuthProviderType provider) throws IOException;
+	void dataSourceDeleted(IRVUserContext userContext, String dataSourceId, OAuthProviderType provider) throws IOException;
+	void deleteToken(IRVUserContext userContext, String tokenId, OAuthProviderType provider) throws IOException;
 	
 	/**
 	 * Registers an OAuth provider, including settings needed for the OAuth flow: clientId, clientSecret and redirect URI.

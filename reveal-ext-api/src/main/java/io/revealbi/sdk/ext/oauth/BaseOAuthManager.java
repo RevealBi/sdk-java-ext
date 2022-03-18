@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.infragistics.reveal.sdk.api.IRVUserContext;
 import com.infragistics.reveal.sdk.api.RVBearerTokenDataSourceCredential;
 
 import io.revealbi.sdk.ext.api.oauth.IOAuthManager;
@@ -34,14 +35,14 @@ public class BaseOAuthManager implements IOAuthManager {
 	}
 
 	@Override
-	public RVBearerTokenDataSourceCredential resolveCredentials(String userId, String dataSourceId, OAuthProviderType provider) {
+	public RVBearerTokenDataSourceCredential resolveCredentials(IRVUserContext userContext, String dataSourceId, OAuthProviderType provider) {
 		try {
-			OAuthToken token = getRefreshedToken(userId, dataSourceId, provider);
+			OAuthToken token = getRefreshedToken(userContext, dataSourceId, provider);
 			if (token == null) {
 				return null;
 			}
 			
-			String oauthUserId = getOAuthUserId(token, provider, userId);
+			String oauthUserId = getOAuthUserId(token, provider, userContext != null ? userContext.getUserId() : null);
 			
 			return new RVBearerTokenDataSourceCredential(token.getAccessToken(), oauthUserId);
 		} catch (Exception e) {
@@ -76,38 +77,38 @@ public class BaseOAuthManager implements IOAuthManager {
 	}
 
 	@Override
-	public Map<String, Object> getUserInfo(String userId, OAuthProviderType provider, String tokenId) throws IOException {
-		OAuthToken token = OAuthTokenRepositoryFactory.getInstance().getToken(userId, tokenId, provider);
+	public Map<String, Object> getUserInfo(IRVUserContext userContext, OAuthProviderType provider, String tokenId) throws IOException {
+		OAuthToken token = OAuthTokenRepositoryFactory.getInstance().getToken(userContext, tokenId, provider);
 		return token == null ? null : token.getUserInfo();
 	}
 	
-	protected OAuthToken getDataSourceToken(String userId, String dataSourceId, OAuthProviderType provider) throws IOException {		
-		return OAuthTokenRepositoryFactory.getInstance().getDataSourceToken(userId, dataSourceId, provider);
+	protected OAuthToken getDataSourceToken(IRVUserContext userContext, String dataSourceId, OAuthProviderType provider) throws IOException {		
+		return OAuthTokenRepositoryFactory.getInstance().getDataSourceToken(userContext, dataSourceId, provider);
 	}
 	
 	@Override
-	public void saveToken(String userId, OAuthProviderType provider, OAuthToken token) throws IOException {
-		OAuthTokenRepositoryFactory.getInstance().saveToken(userId, provider, token);
+	public void saveToken(IRVUserContext userContext, OAuthProviderType provider, OAuthToken token) throws IOException {
+		OAuthTokenRepositoryFactory.getInstance().saveToken(userContext, provider, token);
 	}
 	
 	@Override
-	public OAuthToken getToken(String userId, OAuthProviderType provider, String tokenId) throws IOException {
-		return OAuthTokenRepositoryFactory.getInstance().getToken(userId, tokenId, provider);
+	public OAuthToken getToken(IRVUserContext userContext, OAuthProviderType provider, String tokenId) throws IOException {
+		return OAuthTokenRepositoryFactory.getInstance().getToken(userContext, tokenId, provider);
 	}
 	
 	@Override
-	public void deleteToken(String userId, String tokenId, OAuthProviderType provider) throws IOException {
-		OAuthTokenRepositoryFactory.getInstance().deleteToken(userId, tokenId, provider);
+	public void deleteToken(IRVUserContext userContext, String tokenId, OAuthProviderType provider) throws IOException {
+		OAuthTokenRepositoryFactory.getInstance().deleteToken(userContext, tokenId, provider);
 	}
 	
 	@Override
-	public void setDataSourceToken(String userId, String dataSourceId, String tokenId, OAuthProviderType provider) throws IOException {
-		OAuthTokenRepositoryFactory.getInstance().setDataSourceToken(userId, dataSourceId, tokenId, provider);
+	public void setDataSourceToken(IRVUserContext userContext, String dataSourceId, String tokenId, OAuthProviderType provider) throws IOException {
+		OAuthTokenRepositoryFactory.getInstance().setDataSourceToken(userContext, dataSourceId, tokenId, provider);
 	}
 	
 	@Override
-	public void dataSourceDeleted(String userId, String dataSourceId, OAuthProviderType provider) throws IOException {
-		OAuthTokenRepositoryFactory.getInstance().dataSourceDeleted(userId, dataSourceId, provider);
+	public void dataSourceDeleted(IRVUserContext userContext, String dataSourceId, OAuthProviderType provider) throws IOException {
+		OAuthTokenRepositoryFactory.getInstance().dataSourceDeleted(userContext, dataSourceId, provider);
 	}
 	
 	public void registerProviderSettings(OAuthProviderSettings settings) {
@@ -186,7 +187,8 @@ public class BaseOAuthManager implements IOAuthManager {
 	 * @param token The token to refresh.
 	 * @throws IOException If an I/O error occurs refreshing the token 
 	 */
-	protected void refreshToken(String userId, String dataSourceId, OAuthProviderType provider, OAuthToken token) throws IOException {
+	protected void refreshToken(IRVUserContext userContext, String dataSourceId, OAuthProviderType provider, OAuthToken token) throws IOException {
+		String userId = userContext != null ? userContext.getUserId() : null;
 		log.info("RefreshToken requested for " + getCacheKey(userId, dataSourceId, provider));
 		OAuthProviderSettings settings = getProviderSettings(provider);
 		if (settings == null) {
@@ -210,22 +212,22 @@ public class BaseOAuthManager implements IOAuthManager {
 			return;
 		}
 		token.refreshed(newAccessToken, OAuthClient.getExpirationTimeForToken(expiresIn));
-		saveToken(userId, provider, token);
+		saveToken(userContext, provider, token);
 		log.info("RefreshToken completed for " + getCacheKey(userId, dataSourceId, provider));
 
 	}
 
-	private OAuthToken getRefreshedToken(String userId, String dataSourceId, OAuthProviderType provider) throws IOException {
-		String cacheKey = getCacheKey(userId, dataSourceId, provider);
+	private OAuthToken getRefreshedToken(IRVUserContext userContext, String dataSourceId, OAuthProviderType provider) throws IOException {
+		String cacheKey = getCacheKey(userContext != null ? userContext.getUserId() : null, dataSourceId, provider);
 		Lock lock = tokenLock.getLockObject(cacheKey);
 		try {
 			synchronized (lock) {
-				OAuthToken token = getDataSourceToken(userId, dataSourceId, provider);
+				OAuthToken token = getDataSourceToken(userContext, dataSourceId, provider);
 				if (token == null) {
 					return null;
 				}
 				if (isTokenExpired(token)) {
-					refreshToken(userId, dataSourceId, provider, token);
+					refreshToken(userContext, dataSourceId, provider, token);
 				}							
 				return token;
 			}
