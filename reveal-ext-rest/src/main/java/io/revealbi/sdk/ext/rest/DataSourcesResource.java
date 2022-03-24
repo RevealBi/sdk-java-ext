@@ -28,22 +28,22 @@ public class DataSourcesResource extends BaseResource {
 	@GET
 	@Produces("application/json")
 	public DataSourcesInfo getDataSources() throws IOException {
-		return getDataSourcesRepository().getUserDataSources(getUserId());
+		return getDataSourcesRepository().getUserDataSources(getUserContext());
 	}
 	
 	@Path("/{dataSourceId}")
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response saveDataSource(@PathParam("dataSourceId") String dataSourceId, Map<String, Object> dataSource) throws IOException {
-		DataSourcesRepositoryFactory.getInstance().saveDataSource(getUserId(), dataSourceId, dataSource);
+		DataSourcesRepositoryFactory.getInstance().saveDataSource(getUserContext(), dataSourceId, dataSource);
 		return Response.ok().build();
 	}
 	
 	@Path("/{provider}/{dataSourceId}")
 	@DELETE
 	public Response deleteDataSource(@PathParam("provider") String provider, @PathParam("dataSourceId") String dataSourceId, @QueryParam("uniqueIdentifier") String uniqueIdentifier) throws IOException {
-		DataSourcesRepositoryFactory.getInstance().deleteDataSource(getUserId(), dataSourceId);		
-		CredentialRepositoryFactory.getInstance().dataSourceDeleted(getUserId(), dataSourceId, provider, uniqueIdentifier);
+		DataSourcesRepositoryFactory.getInstance().deleteDataSource(getUserContext(), dataSourceId);		
+		CredentialRepositoryFactory.getInstance().dataSourceDeleted(getUserContext(), dataSourceId, provider, uniqueIdentifier);
 		return Response.ok().build();
 	}
 

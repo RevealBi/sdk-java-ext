@@ -53,9 +53,21 @@ public class SingleUserOAuthTokenRepository {
 		tokens.getTokens().put(tokenInfoId, info);
 		saveTokens();
 	}
-	
+	 
 	public synchronized void setDataSourceToken(String dataSourceId, String tokenId, OAuthProviderType provider) throws IOException {
 		ensureTokens();
+				
+		OAuthToken previousToken;
+		// A given datasourceId can only be associated with one token.
+		// However, previous versions of this implementation did not take care of that appropriately. 
+		// So, the following code considers the possibility of having multiple tokens for the datasource
+		// to correct that situation. 
+		// Implementations that do not need to 'migrate' data like this can just expect one Token.
+		while ((previousToken = getDataSourceToken(dataSourceId, provider)) != null) { 
+			OAuthTokenInfo info = tokens.getTokens().get(getTokenInfoId(previousToken.getId(), provider));
+			info.getDataSources().remove(dataSourceId);
+		}
+		
 		OAuthTokenInfo info = tokens.getTokens().get(getTokenInfoId(tokenId, provider));
 		if (info != null && !info.getDataSources().contains(dataSourceId)) {
 			info.getDataSources().add(dataSourceId);

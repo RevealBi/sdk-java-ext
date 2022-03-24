@@ -55,54 +55,53 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 	
 	@Override
 	public final IRVDataSourceCredential resolveCredentials(IRVUserContext userContext, RVDashboardDataSource dataSource) {
-		String userId = userContext != null ? userContext.getUserId() : null;
 		OAuthProviderType oauthProvider = getOAuthProvider(dataSource);
 		if (oauthProvider != null) {
 			IOAuthManager oauth = OAuthManagerFactory.getInstance();
 			if (oauth != null) {
-				return oauth.resolveCredentials(userContext.getUserId(), dataSource.getId(), oauthProvider);
+				return oauth.resolveCredentials(userContext, dataSource.getId(), oauthProvider);
 			}
 		}
-		return resolveRegularCredentials(userId, dataSource);
+		return resolveRegularCredentials(userContext, dataSource);
 	}
 	
 	@Override
-	public final void dataSourceDeleted(String userId, String dataSourceId, String provider, String uniqueIdentifier) throws IOException {
-		setDataSourceCredentials(userId, uniqueIdentifier == null ? dataSourceId : uniqueIdentifier, null);
+	public final void dataSourceDeleted(IRVUserContext userContext, String dataSourceId, String provider, String uniqueIdentifier) throws IOException {
+		setDataSourceCredentials(userContext, uniqueIdentifier == null ? dataSourceId : uniqueIdentifier, null);
 		OAuthProviderType oauthProvider = getOAuthProvider(provider);
 		if (oauthProvider != null) {
 			IOAuthManager oauth = OAuthManagerFactory.getInstance();
 			if (oauth != null) {
-				oauth.dataSourceDeleted(userId, dataSourceId, oauthProvider);
+				oauth.dataSourceDeleted(userContext, dataSourceId, oauthProvider);
 			}
 		}
 	}
 	
 	/**
 	 * Invoked to resolve credentials for non-OAuth data sources, as OAuth data sources are resolved in this class by using the OAuthManagerFactory
-	 * @param userId Id of the user to return credentials for
+	 * @param userContext context of the user to return credentials for
 	 * @param dataSource Data source to return credentials for
 	 * @return Credentials to be used for this data source, null if no credentials are configured.
 	 */
-	private IRVDataSourceCredential resolveRegularCredentials(String userId, RVDashboardDataSource dataSource) {
+	private IRVDataSourceCredential resolveRegularCredentials(IRVUserContext userContext, RVDashboardDataSource dataSource) {
 		Map<String, Object> map;
 		try {
-			map = getDataSourceCredentials(userId, RVModelUtilities.getUniqueIdentifier(dataSource));
+			map = getDataSourceCredentials(userContext, RVModelUtilities.getUniqueIdentifier(dataSource));
 			if (map == null) {				
-				map = getDataSourceCredentials(userId, dataSource.getId());
+				map = getDataSourceCredentials(userContext, dataSource.getId());
 			}
 		} catch (IOException e) {
 			log.log(Level.SEVERE, "Failed to resolve credentials for datasource '" + dataSource.getId() + "'. Reason: " + e, e);
 			return null;
 		}
 		if (map == null) return null;
-		return getDataSourceCredentials(map, userId);
+		return getDataSourceCredentials(map, userContext);
 	}
 	
 	public final IRVDataSourceCredential getCredentialsById(IRVUserContext userContext, String accountId) {
 		Map<String, Object> creds = getCredentialsByIdOrNull(userContext.getUserId(), accountId);
 		if (creds == null) return null;
-		return getDataSourceCredentials(creds, userContext.getUserId());
+		return getDataSourceCredentials(creds, userContext);
 	}
 	
 	private Map<String, Object> getCredentialsByIdOrNull(String userId, String accountId) {
@@ -114,7 +113,7 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 		}
 	}
 	
-	private IRVDataSourceCredential getDataSourceCredentials(Map<String, Object> credsMap, String userId) {
+	private IRVDataSourceCredential getDataSourceCredentials(Map<String, Object> credsMap, IRVUserContext userContext) {
 		Credentials credentials = new Credentials(credsMap);
 		String id = credentials.getId();
 		if (credentials.getOauthDefinition() != null) {
@@ -125,7 +124,7 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 				Map<String, Object> tokenData = (Map<String, Object>) sensitive.get("token");
 				TokenObject tokenJsonObject = new TokenObject(toCPJSONObject(tokenData));
 				if (tokenJsonObject.isExpired()) {
-					accessToken = refreshToken(userId, credentials);
+					accessToken = refreshToken(userContext, credentials);
 					if (accessToken == null) {
 						accessToken = tokenJsonObject.getAccessToken(); // use the expired one so we get an appropriate error message
 					}
@@ -145,7 +144,8 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 	protected abstract Map<String, Object> getCredentialsById(String userId, String id) throws IOException;
 	
 	@SuppressWarnings("unchecked")
-	private String refreshToken(String userId, Credentials credentials) {
+	private String refreshToken(IRVUserContext userContext, Credentials credentials) {
+		String userId = userContext != null ? userContext.getUserId() : null;
 		String lockKey = userId != null ? NativeRequestUtility.utility().base64Encode(userId) : "" + "_" + NativeRequestUtility.utility().base64Encode(credentials.getId());
 		Lock lock = tokenLock.getLockObject(lockKey);
 		try {
@@ -212,7 +212,7 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 					tokenJsonObject.setRefreshToken(refreshToken);
 					sensitive.put("token", tokenJsonObject.getJSONObject());
 					try {
-						saveCredentials(userId, credentials.getId(), credentialsMap);
+						saveCredentials(userContext, credentials.getId(), credentialsMap);
 					} catch (IOException e) {
 						log.log(Level.SEVERE, "Failed to save credentials '" + credentials.getId() + "'. Reason: " + e, e);
 						return null;
