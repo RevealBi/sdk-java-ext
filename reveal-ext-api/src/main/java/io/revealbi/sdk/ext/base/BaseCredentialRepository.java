@@ -52,9 +52,13 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 	private static Logger log = Logger.getLogger(BaseCredentialRepository.class.getSimpleName());
 
 	private final TokenLock tokenLock = new TokenLock();
-	
+
+	/**
+	 * Extensions can override this method when they might have the need to either avoid the JSONObject representation of credentials,
+	 * or if they need the full RVDashboardDataSource object instead of just the dataSourceId (as received in the getCredentialsById method).
+	 */
 	@Override
-	public final IRVDataSourceCredential resolveCredentials(IRVUserContext userContext, RVDashboardDataSource dataSource) {
+	public IRVDataSourceCredential resolveCredentials(IRVUserContext userContext, RVDashboardDataSource dataSource) {
 		OAuthProviderType oauthProvider = getOAuthProvider(dataSource);
 		if (oauthProvider != null) {
 			IOAuthManager oauth = OAuthManagerFactory.getInstance();
