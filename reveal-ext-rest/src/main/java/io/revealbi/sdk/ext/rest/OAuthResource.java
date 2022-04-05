@@ -186,7 +186,7 @@ public class OAuthResource extends BaseResource {
 	}
 	
 	private static String generateDataSourceIdentifier(DataSource ds) {
-		return DashboardModelUtils.getUniqueDataSourceIdentifier(ds);
+		return DashboardModelUtils.getUniqueDataSourceIdentifierForCredentials(ds);
 	}
 
 	private URI getAuthURI(OAuthProviderSettings settings, Map<String, String> state) {

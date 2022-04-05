@@ -14,10 +14,12 @@ import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+
+import com.infragistics.reportplus.dashboardmodel.DataSource;
+import com.infragistics.reportplus.datalayer.DashboardModelUtils;
 
 import io.revealbi.sdk.ext.api.CredentialRepositoryFactory;
 import io.revealbi.sdk.ext.api.DataSourcesRepositoryFactory;
@@ -64,14 +66,13 @@ public class CredentialsResource extends BaseResource {
 		return Response.status(Status.NOT_FOUND).build();
 	}
 	
-	@GET
+	@POST
 	@Produces(MediaType.APPLICATION_JSON)
 	@Path("query")
-	public Response getCredentialsForDataSource(@QueryParam("dataSourceId") String dataSourceId) throws IOException {
-		// This is done with a QueryParam, and not a PathParam, because datasourceIds sometimes look like URLs, so it needs proper escaping
-		// but a '/' escaped in a pathParam is not something that Tomcat is happy with (error: Invalid URI: noSlash), and we want to avoid 
-		// the usual workarounds for that (System properties).
-		Map<String, Object> json = CredentialRepositoryFactory.getInstance().getDataSourceCredentials(getUserContext(), dataSourceId);
+	public Response getCredentialsForDataSource(Map<String, Object> dataSource) throws IOException {
+		@SuppressWarnings({ "unchecked", "rawtypes" })
+		String dsUniqueId = DashboardModelUtils.getUniqueDataSourceIdentifierForCredentials(new DataSource(new HashMap(dataSource)));
+		Map<String, Object> json = CredentialRepositoryFactory.getInstance().getDataSourceCredentials(getUserContext(), dsUniqueId);
 		if (json == null) {
 			return Response.status(Status.NOT_FOUND).build();
 		} else {
@@ -91,10 +92,13 @@ public class CredentialsResource extends BaseResource {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("associate")
 	public Response setAssignment(Map<String, Object> json) throws IOException {
-		String resourceId = (String)json.get("resourceId");
+		@SuppressWarnings("unchecked")
+		Map<String, Object> dsJson = (Map<String, Object>) json.get("dataSource");
 		String accountId = (String)json.get("accountId");
-		if (resourceId != null && accountId != null) {
-			CredentialRepositoryFactory.getInstance().setDataSourceCredentials(getUserContext(), resourceId, accountId);
+		if (json != null && accountId != null) {
+			@SuppressWarnings({ "unchecked", "rawtypes" })
+			String dsUniqueId = DashboardModelUtils.getUniqueDataSourceIdentifierForCredentials(new DataSource(new HashMap(dsJson)));
+			CredentialRepositoryFactory.getInstance().setDataSourceCredentials(getUserContext(), dsUniqueId, accountId);
 		}
 		return Response.ok().build();
 	}

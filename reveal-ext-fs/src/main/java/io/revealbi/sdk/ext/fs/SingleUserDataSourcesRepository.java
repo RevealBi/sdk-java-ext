@@ -141,4 +141,8 @@ public class SingleUserDataSourcesRepository {
 		}
 	}
 
+	public synchronized Map<String, Object> getDataSource(String dataSourceId) {
+		return getDataSourceById(dataSourceId);
+	}
+
 }

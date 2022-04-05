@@ -1,6 +1,7 @@
 package io.revealbi.sdk.ext.rest;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.ws.rs.Consumes;
@@ -10,9 +11,11 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import com.infragistics.reportplus.dashboardmodel.DataSource;
+import com.infragistics.reportplus.datalayer.DashboardModelUtils;
 
 import io.revealbi.sdk.ext.api.CredentialRepositoryFactory;
 import io.revealbi.sdk.ext.api.DataSourcesInfo;
@@ -41,9 +44,17 @@ public class DataSourcesResource extends BaseResource {
 	
 	@Path("/{provider}/{dataSourceId}")
 	@DELETE
-	public Response deleteDataSource(@PathParam("provider") String provider, @PathParam("dataSourceId") String dataSourceId, @QueryParam("uniqueIdentifier") String uniqueIdentifier) throws IOException {
-		DataSourcesRepositoryFactory.getInstance().deleteDataSource(getUserContext(), dataSourceId);		
-		CredentialRepositoryFactory.getInstance().dataSourceDeleted(getUserContext(), dataSourceId, provider, uniqueIdentifier);
+	public Response deleteDataSource(@PathParam("provider") String provider, @PathParam("dataSourceId") String dataSourceId) throws IOException {
+		IDataSourcesRepository repository = DataSourcesRepositoryFactory.getInstance();
+		Map<String, Object> dataSourceJson = repository.getUserDataSource(getUserContext(), dataSourceId);
+		if (dataSourceJson != null) {
+			repository.deleteDataSource(getUserContext(), dataSourceId);
+			@SuppressWarnings({ "unchecked", "rawtypes" })
+			DataSource ds = new DataSource(new HashMap(dataSourceJson));
+			String uniqueIdentifier = DashboardModelUtils.getUniqueDataSourceIdentifierForCredentials(ds); 
+			
+			CredentialRepositoryFactory.getInstance().dataSourceDeleted(getUserContext(), dataSourceId, provider, uniqueIdentifier);			
+		}
 		return Response.ok().build();
 	}
 

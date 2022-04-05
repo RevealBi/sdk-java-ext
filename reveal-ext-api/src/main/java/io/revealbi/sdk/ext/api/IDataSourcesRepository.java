@@ -62,7 +62,7 @@ public interface IDataSourcesRepository {
 	
 	/**
 	 * Deletes the given data source.
-	 * @param userContext The context of the data source owning the data source.
+	 * @param userContext The context of the user owning the data source.
 	 * @param dataSourceId The id of the data source being deleted.
 	 * @throws IOException If an error occurred deleting the data source from storage.
 	 */
@@ -73,7 +73,7 @@ public interface IDataSourcesRepository {
 	/**
 	 * Deletes the given data source.
 	 * <br><br>{@code @deprecated} Use {@link #deleteDataSource(IRVUserContext, String)}
-	 * @param userId The id of the data source owning the data source.
+	 * @param userId The id of the user owning the data source.
 	 * @param dataSourceId The id of the data source being deleted.
 	 * @throws IOException If an error occurred deleting the data source from storage.
 	 */
@@ -81,4 +81,12 @@ public interface IDataSourcesRepository {
 	default void deleteDataSource(String userId, String dataSourceId) throws IOException {
 		throw new RuntimeException("Please implement deleteDataSource(IRVUserContext userContext, String dataSourceId)");
 	}
+
+	/**
+	 * Returns the dataSource by dataSourceId. The user should have access to this dataSource, otherwise it should return null.
+	 * @param userContext The context of the user owning the data source.
+	 * @param dataSourceId The id of the data source to return
+	 * @return The data source, or null if it doesn't exist or user doesn't have access to.
+	 */
+	Map<String, Object> getUserDataSource(IRVUserContext userContext, String dataSourceId);
 }
