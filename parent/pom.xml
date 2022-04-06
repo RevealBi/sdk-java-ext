@@ -4,13 +4,13 @@
 			<id>reveal.public</id>
 			<url>https://maven.revealbi.io/repository/public</url>
 		</repository>
-		<!-- repository>
+		<repository>
 			<id>reveal.snapshots</id>
 			<url>https://maven.revealbi.io/repository/snapshots</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
-		</repository-->
+		</repository>
 	</repositories>
 
 	<modelVersion>4.0.0</modelVersion>
