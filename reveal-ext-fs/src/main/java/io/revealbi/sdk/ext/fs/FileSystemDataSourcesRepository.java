@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.infragistics.reveal.sdk.api.IRVUserContext;
+
 import io.revealbi.sdk.ext.api.DataSourcesInfo;
 import io.revealbi.sdk.ext.api.IDataSourcesRepository;
 
@@ -69,6 +71,11 @@ public class FileSystemDataSourcesRepository implements IDataSourcesRepository {
 			repositories.put(key, repo);
 		}
 		return repo;
+	}
+
+	@Override
+	public Map<String, Object> getUserDataSource(IRVUserContext userContext, String dataSourceId) {
+		return getRepository(userContext != null ? userContext.getUserId() : null).getDataSource(dataSourceId);
 	}
 
 }
