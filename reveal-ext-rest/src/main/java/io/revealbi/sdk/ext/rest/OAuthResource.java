@@ -157,7 +157,7 @@ public class OAuthResource extends BaseResource {
 		
 		return Response.ok(builder.toString(), MediaType.TEXT_HTML_TYPE).build();
 	}
-	
+	 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Path("/{providerType}/{tokenId}/registerDashboardDataSource")
 	@PUT
