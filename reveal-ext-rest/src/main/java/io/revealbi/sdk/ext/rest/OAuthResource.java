@@ -162,6 +162,7 @@ public class OAuthResource extends BaseResource {
 	@Path("/{providerType}/{tokenId}/registerDashboardDataSource")
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.TEXT_PLAIN)
 	public Response registerDashboardDataSource(@PathParam("providerType") OAuthProviderType providerType, @PathParam("tokenId") String tokenId, Map<String, Object> dataSourceJson) throws IOException {
 		String dataSourceId = generateDataSourceIdentifier(new DataSource(new HashMap(dataSourceJson)));
 		getOAuthManager().setDataSourceToken(getUserContext(), dataSourceId, tokenId, providerType);
