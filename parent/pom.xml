@@ -33,7 +33,7 @@
 	<distributionManagement>
 		<repository>
 			<id>reveal.public</id>
-			<url>https://maven.revealbi.io/repository/public</url>
+			<url>https://maven.revealbi.io/repository/public-stage</url>
 			<releases>
 				<enabled>true</enabled>
 			</releases>
