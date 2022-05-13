@@ -18,7 +18,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.revealbi.sdk.ext</groupId>
 	<artifactId>reveal-ext-parent</artifactId>
-	<version>1.1.5-SNAPSHOT</version>
+	<version>1.1.6-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<scm>
 		<developerConnection>scm:git:https://github.com/RevealBi/sdk-java-ext.git</developerConnection>
@@ -84,6 +84,6 @@
 	</dependencies>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<reveal.sdk.version>[1.1.4-3,)</reveal.sdk.version>
+		<reveal.sdk.version>[1.1.5,)</reveal.sdk.version>
 	</properties>
 </project>
