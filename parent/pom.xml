@@ -2,7 +2,7 @@
 	<repositories>
 		<repository>
 			<id>reveal.public</id>
-			<url>https://maven.revealbi.io/repository/public</url>
+			<url>https://maven.revealbi.io/repository/public-stage</url>
 		</repository>
 		<!--
 		<repository>
@@ -84,6 +84,6 @@
 	</dependencies>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<reveal.sdk.version>[1.1.5-2,)</reveal.sdk.version>
+		<reveal.sdk.version>[1.1.7,)</reveal.sdk.version>
 	</properties>
 </project>
