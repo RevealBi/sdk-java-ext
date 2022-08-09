@@ -39,4 +39,6 @@ public interface IDashboardRepository extends IRVDashboardProvider {
 		throw new RuntimeException("Please implement deleteDashboard(IRVUserContext userContext, String dashboardId)");
 	}
 
+	String[] getDashboardIdList(IRVUserContext userContext) throws IOException;
+	
 }
