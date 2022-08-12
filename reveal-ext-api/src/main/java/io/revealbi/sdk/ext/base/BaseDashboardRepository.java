@@ -1,5 +1,6 @@
 package io.revealbi.sdk.ext.base;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -60,5 +61,14 @@ public abstract class BaseDashboardRepository implements IDashboardRepository {
 	}
 
 	protected abstract String[] getUserDashboardIds(String userId) throws IOException;
+	
+	
+	public String[] getDashboardIdList(IRVUserContext userContext) throws IOException {
+				
+		String[] ids = getUserDashboardIds(userContext.getUserId());
+		
+		return ids;
+	}
+	
 	
 }

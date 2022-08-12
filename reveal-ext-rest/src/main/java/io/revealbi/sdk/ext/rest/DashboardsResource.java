@@ -83,4 +83,13 @@ public class DashboardsResource extends BaseResource {
 		}
 		throw new WebApplicationException(Response.Status.NOT_FOUND);
 	}	
+	
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	@Path("/ids")
+	public String[] getDashboardsIdList() throws IOException {
+		checkDashboardsPermission(IAuthorizationProvider.DashboardsActionType.LIST);
+
+		return getDashboardRepository().getDashboardIdList(getUserContext());
+	}
 }
