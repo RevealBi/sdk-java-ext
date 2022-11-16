@@ -18,11 +18,11 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.revealbi.sdk.ext</groupId>
 	<artifactId>reveal-ext-parent</artifactId>
-	<version>1.2.1-SNAPSHOT</version>
+	<version>1.3.0</version>
 	<packaging>pom</packaging>
 	<scm>
 		<developerConnection>scm:git:https://github.com/RevealBi/sdk-java-ext.git</developerConnection>
-		<tag>HEAD</tag>
+		<tag>reveal-ext-sdk-1.3.0</tag>
 	</scm>
 	<modules>
 		<module>../reveal-ext-api</module>
