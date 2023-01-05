@@ -12,10 +12,15 @@ public class OAuthProviderSettings {
 	private static final String GOOGLE_OAUTH_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 	private static final String GOOGLE_OAUTH_TOKEN_ENDPOINT = "https://www.googleapis.com/oauth2/v4/token";
 	private static final String GOOGLE_ANALYTICS_SCOPE = "https://www.googleapis.com/auth/userinfo.email%20https://www.googleapis.com/auth/userinfo.profile%20https://www.googleapis.com/auth/analytics.readonly";
-	private static final String GOOGLE_BIGQUERY_SCOPE = "https://www.googleapis.com/auth/userinfo.email%20https://www.googleapis.com/auth/userinfo.profile%20https://www.googleapis.com/auth/bigquery.readonly";
+	private static final String GOOGLE_ANALYTICS_4_SCOPE = "https://www.googleapis.com/auth/userinfo.email%20https://www.googleapis.com/auth/userinfo.profile%20https://www.googleapis.com/auth/analytics.readonly";
+	private static final String GOOGLE_BIGQUERY_SCOPE = "https://www.googleapis.com/auth/userinfo.email%20https://www.googleapis.com/auth/analytics.readonly";
 	
 	public static OAuthProviderSettings createGoogleAnalyticsSettings(String clientId, String clientSecret, String redirectUri) {
 		return new OAuthProviderSettings(OAuthProviderType.GOOGLE_ANALYTICS, GOOGLE_OAUTH_AUTH_ENDPOINT, GOOGLE_OAUTH_TOKEN_ENDPOINT, clientId, clientSecret, GOOGLE_ANALYTICS_SCOPE, redirectUri);
+	}
+	
+	public static OAuthProviderSettings createGoogleAnalytics4Settings(String clientId, String clientSecret, String redirectUri) {
+		return new OAuthProviderSettings(OAuthProviderType.GOOGLE_ANALYTICS_4, GOOGLE_OAUTH_AUTH_ENDPOINT, GOOGLE_OAUTH_TOKEN_ENDPOINT, clientId, clientSecret, GOOGLE_ANALYTICS_4_SCOPE, redirectUri);
 	}
 	
 	public static OAuthProviderSettings createBigQuerySettings(String clientId, String clientSecret, String redirectUri) {

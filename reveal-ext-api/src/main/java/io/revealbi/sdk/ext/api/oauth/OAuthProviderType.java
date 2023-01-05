@@ -4,6 +4,7 @@ import com.infragistics.reportplus.datalayer.api.ProviderKeys;
 
 public enum OAuthProviderType {
 	GOOGLE_ANALYTICS(ProviderKeys.googleAnalyticsProviderKey),
+	GOOGLE_ANALYTICS_4(ProviderKeys.googleAnalytics4ProviderKey),
 	GOOGLE_BIG_QUERY(ProviderKeys.bigQueryProviderKey),
 	GOOGLE_DRIVE(ProviderKeys.googleDriveProviderKey),
 	ONE_DRIVE(ProviderKeys.oneDriveProviderKey),

@@ -57,6 +57,7 @@ public class BaseOAuthManager implements IOAuthManager {
 		if (userInfo != null) {
 			switch (provider) {
 			case GOOGLE_ANALYTICS:
+			case GOOGLE_ANALYTICS_4:
 			case GOOGLE_BIG_QUERY:
 			case GOOGLE_DRIVE:
 			case GOOGLE_SEARCH_CONSOLE:
@@ -134,6 +135,9 @@ public class BaseOAuthManager implements IOAuthManager {
 		switch (provider) {
 		case GOOGLE_ANALYTICS:
 			registerProviderSettings(OAuthProviderSettings.createGoogleAnalyticsSettings(clientId, clientSecret, redirectUri));
+			break;
+		case GOOGLE_ANALYTICS_4:
+			registerProviderSettings(OAuthProviderSettings.createGoogleAnalytics4Settings(clientId, clientSecret, redirectUri));
 			break;
 		case GOOGLE_BIG_QUERY:
 			registerProviderSettings(OAuthProviderSettings.createBigQuerySettings(clientId, clientSecret, redirectUri));
