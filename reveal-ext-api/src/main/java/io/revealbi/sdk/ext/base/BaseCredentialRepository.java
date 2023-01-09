@@ -30,6 +30,7 @@ import com.infragistics.reveal.sdk.api.model.RVBigQueryDataSource;
 import com.infragistics.reveal.sdk.api.model.RVBoxDataSource;
 import com.infragistics.reveal.sdk.api.model.RVDashboardDataSource;
 import com.infragistics.reveal.sdk.api.model.RVDropboxDataSource;
+import com.infragistics.reveal.sdk.api.model.RVGoogleAnalytics4DataSource;
 import com.infragistics.reveal.sdk.api.model.RVGoogleAnalyticsDataSource;
 import com.infragistics.reveal.sdk.api.model.RVGoogleDriveDataSource;
 import com.infragistics.reveal.sdk.api.model.RVGoogleSearchConsoleDataSource;
@@ -258,6 +259,8 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 	protected static OAuthProviderType getOAuthProvider(RVDashboardDataSource ds) {
 		if (ds instanceof RVGoogleAnalyticsDataSource) {
 			return OAuthProviderType.GOOGLE_ANALYTICS;
+		} else if (ds instanceof RVGoogleAnalytics4DataSource) {
+			return OAuthProviderType.GOOGLE_ANALYTICS_4;
 		} else if (ds instanceof RVBigQueryDataSource) {
 			return OAuthProviderType.GOOGLE_BIG_QUERY;
 		} else if (ds instanceof RVGoogleDriveDataSource) {
@@ -281,6 +284,8 @@ public abstract class BaseCredentialRepository implements ICredentialRepository 
 		}
 		if (provider.equals(ProviderKeys.googleAnalyticsProviderKey)) {
 			return OAuthProviderType.GOOGLE_ANALYTICS;
+		} else if (provider.equals(ProviderKeys.googleAnalytics4ProviderKey)) {
+			return OAuthProviderType.GOOGLE_ANALYTICS_4;
 		} else if (provider.equals(ProviderKeys.bigQueryProviderKey)) {
 			return OAuthProviderType.GOOGLE_BIG_QUERY;
 		} else if (provider.equals(ProviderKeys.googleDriveProviderKey)) {

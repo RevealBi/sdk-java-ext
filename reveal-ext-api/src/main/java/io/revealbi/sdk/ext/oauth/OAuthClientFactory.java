@@ -6,6 +6,7 @@ public class OAuthClientFactory {
 	public static OAuthClient getClient(OAuthProviderType provider) {
 		switch (provider) {
 		case GOOGLE_ANALYTICS:
+		case GOOGLE_ANALYTICS_4:
 		case GOOGLE_BIG_QUERY:
 		case GOOGLE_DRIVE:
 		case GOOGLE_SEARCH_CONSOLE:
